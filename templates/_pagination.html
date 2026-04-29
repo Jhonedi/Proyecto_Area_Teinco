@@ -1,0 +1,70 @@
+{# =====================================================
+   Macro: pagination(page, total_pages)
+   Muestra hasta 9 botones: [<] [1] [..] [p-2..p+2] [..] [N] [>]
+   Preserva automáticamente todos los query params actuales.
+   ===================================================== #}
+{% macro pagination(page, total_pages) %}
+{% if total_pages > 1 %}
+{# Construir query string sin el parámetro page #}
+{% set ns = namespace(parts=[]) %}
+{% for key, val in request.args.items() %}
+  {% if key != 'page' %}{% set ns.parts = ns.parts + [key ~ '=' ~ val] %}{% endif %}
+{% endfor %}
+{% set extra = ('&' ~ ns.parts|join('&')) if ns.parts else '' %}
+
+{# Ventana de páginas alrededor de la actual #}
+{% set w_start = [2, page - 2] | max %}
+{% set w_end   = [total_pages - 1, page + 2] | min %}
+
+<nav aria-label="Paginación de resultados">
+  <ul class="pagination justify-content-center flex-wrap mb-0">
+
+    {# ← Anterior #}
+    <li class="page-item{% if page <= 1 %} disabled{% endif %}">
+      <a class="page-link" href="?page={{ [1, page - 1]|max }}{{ extra }}" aria-label="Anterior">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+    </li>
+
+    {# Primera página #}
+    <li class="page-item{% if page == 1 %} active{% endif %}">
+      <a class="page-link" href="?page=1{{ extra }}">1</a>
+    </li>
+
+    {# Puntos suspensivos izquierdos #}
+    {% if w_start > 2 %}
+      <li class="page-item disabled">
+        <span class="page-link border-0 bg-transparent px-1">…</span>
+      </li>
+    {% endif %}
+
+    {# Ventana central #}
+    {% for p in range(w_start, w_end + 1) %}
+      <li class="page-item{% if p == page %} active{% endif %}">
+        <a class="page-link" href="?page={{ p }}{{ extra }}">{{ p }}</a>
+      </li>
+    {% endfor %}
+
+    {# Puntos suspensivos derechos #}
+    {% if w_end < total_pages - 1 %}
+      <li class="page-item disabled">
+        <span class="page-link border-0 bg-transparent px-1">…</span>
+      </li>
+    {% endif %}
+
+    {# Última página (solo si total_pages > 1, ya garantizado) #}
+    <li class="page-item{% if page == total_pages %} active{% endif %}">
+      <a class="page-link" href="?page={{ total_pages }}{{ extra }}">{{ total_pages }}</a>
+    </li>
+
+    {# → Siguiente #}
+    <li class="page-item{% if page >= total_pages %} disabled{% endif %}">
+      <a class="page-link" href="?page={{ [total_pages, page + 1]|min }}{{ extra }}" aria-label="Siguiente">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+    </li>
+
+  </ul>
+</nav>
+{% endif %}
+{% endmacro %}

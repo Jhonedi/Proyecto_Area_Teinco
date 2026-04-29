@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_pagination.html' import pagination %}
 {% block title %}Alertas de Inventario{% endblock %}
 
 {% block content %}
@@ -154,19 +155,9 @@
                 </table>
             </div>
 
-            {% if total_pages > 1 %}
             <div class="p-3">
-                <nav>
-                    <ul class="pagination justify-content-center mb-0">
-                        {% for p in range(1, total_pages+1) %}
-                        <li class="page-item {% if p == page %}active{% endif %}">
-                            <a class="page-link" href="?page={{ p }}&seccion={{ seccion }}{% if tipo_alerta %}&tipo_alerta={{ tipo_alerta }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}">{{ p }}</a>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </nav>
+                {{ pagination(page, total_pages) }}
             </div>
-            {% endif %}
         </div>
     </div>
 </div>

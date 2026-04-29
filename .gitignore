@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Flask
+instance/
+.webassets-cache
+flask_session/
+
+# Variables de entorno (contiene contraseñas)
+.env
+.env.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Base de datos
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Uploads (imágenes subidas por usuarios)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Scripts temporales de generación
+database/_gen_sql.py
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_pagination.html' import pagination %}
 
 {% block title %}Movimientos de Inventario - Sistema de Inventario{% endblock %}
 
@@ -111,23 +112,7 @@
                     </div>
                     
                     <!-- Paginación -->
-                    {% if total_pages > 1 %}
-                    <nav>
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('lista_movimientos', page=page-1, tipo=tipo) }}">Anterior</a>
-                            </li>
-                            {% for p in range(1, total_pages + 1) %}
-                                <li class="page-item {% if p == page %}active{% endif %}">
-                                    <a class="page-link" href="{{ url_for('lista_movimientos', page=p, tipo=tipo) }}">{{ p }}</a>
-                                </li>
-                            {% endfor %}
-                            <li class="page-item {% if page == total_pages %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('lista_movimientos', page=page+1, tipo=tipo) }}">Siguiente</a>
-                            </li>
-                        </ul>
-                    </nav>
-                    {% endif %}
+                    {{ pagination(page, total_pages) }}
                     {% else %}
                     <div class="alert alert-info mb-0">
                         <i class="bi bi-info-circle"></i> No hay movimientos registrados

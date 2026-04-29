@@ -11,7 +11,7 @@ class Config:
     MYSQL_HOST = os.environ.get('MYSQL_HOST') or 'localhost'
     MYSQL_USER = os.environ.get('MYSQL_USER') or 'root'
     MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD') or ''
-    MYSQL_DB = os.environ.get('MYSQL_DB') or 'taller_inventario'
+    MYSQL_DB = os.environ.get('MYSQL_DB') or 'DB_Area_InventoryFlow'
     MYSQL_PORT = int(os.environ.get('MYSQL_PORT') or 3307)
     MYSQL_CHARSET = 'utf8mb4'
 
