@@ -890,15 +890,15 @@ INSERT INTO tipos_movimiento (id,nombre,tipo,descripcion,requiere_aprobacion) VA
 -- Usuarios: 1 SUPER + 2 ADMIN + 2 ALMACENISTA + 2 VENDEDOR + 2 TECNICO
 -- Contraseñas: superusuario=super123 | admin1=admin123 | resto=pass123
 INSERT INTO usuarios (numero_documento,username,password_hash,nombre_completo,email,rol_id,es_protegido) VALUES
-('0000000001','superusuario','$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.xvMqvRfPEOaY1G','Super Usuario del Sistema','super@inventoryflow.com',1,1),
+('0000000001','superusuario','$2b$12$CbCcIoCBWjKOLJ6cAIvG7.z2uaC6yDAHQCToTYNbKdigtWTwszTay','Super Usuario del Sistema','super@inventoryflow.com',1,1),
 ('0000000002','admin1','$2b$12$Y2AGfKQsLpKfPOHK5ZO/gOYwgznuQbT6gOI3mOQ8EySTMrwm3GP56','Administrador Principal','admin1@inventoryflow.com',2,0),
-('0000000003','admin2','$2b$12$LQv3c1yqBwlVHpPx8fCv5uTeVF8z/TJ.cKo9lYz/h2SqKTK8lBvMu','Administrador Secundario','admin2@inventoryflow.com',2,0),
-('8050010001','almacenista1','$2b$12$LQv3c1yqBwlVHpPx8fCv5uTeVF8z/TJ.cKo9lYz/h2SqKTK8lBvMu','Carlos Mendoza Reyes','c.mendoza@inventoryflow.com',3,0),
-('8050010002','almacenista2','$2b$12$LQv3c1yqBwlVHpPx8fCv5uTeVF8z/TJ.cKo9lYz/h2SqKTK8lBvMu','Pedro Ospina Gil','p.ospina@inventoryflow.com',3,0),
-('2060020001','vendedor1','$2b$12$LQv3c1yqBwlVHpPx8fCv5uTeVF8z/TJ.cKo9lYz/h2SqKTK8lBvMu','María Rodríguez Torres','m.rodriguez@inventoryflow.com',4,0),
-('2060020002','vendedor2','$2b$12$LQv3c1yqBwlVHpPx8fCv5uTeVF8z/TJ.cKo9lYz/h2SqKTK8lBvMu','Lucía Vargas Soto','l.vargas@inventoryflow.com',4,0),
-('1090030001','tecnico1','$2b$12$LQv3c1yqBwlVHpPx8fCv5uTeVF8z/TJ.cKo9lYz/h2SqKTK8lBvMu','Juan Pérez Álvarez','j.perez@inventoryflow.com',5,0),
-('1090030002','tecnico2','$2b$12$LQv3c1yqBwlVHpPx8fCv5uTeVF8z/TJ.cKo9lYz/h2SqKTK8lBvMu','Andrés Gómez Castro','a.gomez@inventoryflow.com',5,0);
+('0000000003','admin2','$2b$12$RvufzZZJAmRACi/obwzteOH9SlgzCRBjAM3Fu8X3dCCtINAAdcryW','Administrador Secundario','admin2@inventoryflow.com',2,0),
+('8050010001','almacenista1','$2b$12$RvufzZZJAmRACi/obwzteOH9SlgzCRBjAM3Fu8X3dCCtINAAdcryW','Carlos Mendoza Reyes','c.mendoza@inventoryflow.com',3,0),
+('8050010002','almacenista2','$2b$12$RvufzZZJAmRACi/obwzteOH9SlgzCRBjAM3Fu8X3dCCtINAAdcryW','Pedro Ospina Gil','p.ospina@inventoryflow.com',3,0),
+('2060020001','vendedor1','$2b$12$RvufzZZJAmRACi/obwzteOH9SlgzCRBjAM3Fu8X3dCCtINAAdcryW','María Rodríguez Torres','m.rodriguez@inventoryflow.com',4,0),
+('2060020002','vendedor2','$2b$12$RvufzZZJAmRACi/obwzteOH9SlgzCRBjAM3Fu8X3dCCtINAAdcryW','Lucía Vargas Soto','l.vargas@inventoryflow.com',4,0),
+('1090030001','tecnico1','$2b$12$RvufzZZJAmRACi/obwzteOH9SlgzCRBjAM3Fu8X3dCCtINAAdcryW','Juan Pérez Álvarez','j.perez@inventoryflow.com',5,0),
+('1090030002','tecnico2','$2b$12$RvufzZZJAmRACi/obwzteOH9SlgzCRBjAM3Fu8X3dCCtINAAdcryW','Andrés Gómez Castro','a.gomez@inventoryflow.com',5,0);
 
 -- Configuración del sistema
 INSERT INTO configuracion_sistema (clave,valor,tipo,descripcion) VALUES

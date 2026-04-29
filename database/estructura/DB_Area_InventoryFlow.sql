@@ -893,7 +893,7 @@ INSERT INTO tipos_movimiento (id,nombre,tipo,descripcion,requiere_aprobacion) VA
 (9,'Garantía','SALIDA','Movimiento salida: Garantía',0);
 
 INSERT INTO usuarios (numero_documento,username,password_hash,nombre_completo,email,rol_id,es_protegido) VALUES
-('0000000001','superusuario','$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.xvMqvRfPEOaY1G','Super Usuario del Sistema','super@inventoryflow.com',1,1);
+('0000000001','superusuario','$2b$12$CbCcIoCBWjKOLJ6cAIvG7.z2uaC6yDAHQCToTYNbKdigtWTwszTay','Super Usuario del Sistema','super@inventoryflow.com',1,1);
 
 INSERT INTO configuracion_sistema (clave,valor,tipo,descripcion) VALUES
 ('SESSION_INACTIVITY_TIMEOUT','30','INTEGER','Minutos de inactividad antes de cerrar sesión'),
