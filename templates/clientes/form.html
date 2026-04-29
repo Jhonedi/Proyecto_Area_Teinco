@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if cliente else 'Nuevo' }} Cliente - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="bi bi-person-plus"></i> {{ 'Editar' if cliente else 'Nuevo' }} Cliente</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('lista_clientes') }}">Clientes</a></li>
+                    <li class="breadcrumb-item active">{{ 'Editar' if cliente else 'Nuevo' }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="tipo_documento" class="form-label">Tipo de Documento <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="tipo_documento" name="tipo_documento" required>
+                                        <option value="CC" {% if cliente and cliente.tipo_documento == 'CC' %}selected{% endif %}>Cédula de Ciudadanía</option>
+                                        <option value="NIT" {% if cliente and cliente.tipo_documento == 'NIT' %}selected{% endif %}>NIT</option>
+                                        <option value="CE" {% if cliente and cliente.tipo_documento == 'CE' %}selected{% endif %}>Cédula de Extranjería</option>
+                                        <option value="PASAPORTE" {% if cliente and cliente.tipo_documento == 'PASAPORTE' %}selected{% endif %}>Pasaporte</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="numero_documento" class="form-label">Número de Documento <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="numero_documento" name="numero_documento" 
+                                           value="{{ cliente.numero_documento if cliente else '' }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="nombre_completo" class="form-label">Nombre Completo <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nombre_completo" name="nombre_completo" 
+                                   value="{{ cliente.nombre_completo if cliente else '' }}" required>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="telefono" class="form-label">Teléfono</label>
+                                    <input type="text" class="form-control" id="telefono" name="telefono" 
+                                           value="{{ cliente.telefono if cliente else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" 
+                                           value="{{ cliente.email if cliente else '' }}">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="direccion" class="form-label">Dirección</label>
+                            <textarea class="form-control" id="direccion" name="direccion" rows="2">{{ cliente.direccion if cliente else '' }}</textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('lista_clientes') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Guardar Cliente
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

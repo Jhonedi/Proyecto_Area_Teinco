@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Salida de Inventario - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="bi bi-arrow-up-circle"></i> Salida de Inventario</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('lista_movimientos') }}">Movimientos</a></li>
+                    <li class="breadcrumb-item active">Salida</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="repuesto_id" class="form-label">Repuesto <span class="text-danger">*</span></label>
+                            <select class="form-select" id="repuesto_id" name="repuesto_id" required>
+                                <option value="">Seleccione un repuesto...</option>
+                                {% for repuesto in repuestos %}
+                                <option value="{{ repuesto.id }}" data-stock="{{ repuesto.cantidad_actual }}">
+                                    {{ repuesto.codigo }} - {{ repuesto.nombre }} (Stock: {{ repuesto.cantidad_actual }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tipo_movimiento_id" class="form-label">Tipo de Salida <span class="text-danger">*</span></label>
+                            <select class="form-select" id="tipo_movimiento_id" name="tipo_movimiento_id" required>
+                                <option value="">Seleccione un tipo...</option>
+                                {% for tipo in tipos_movimiento %}
+                                <option value="{{ tipo.id }}">{{ tipo.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="cantidad" class="form-label">Cantidad <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="cantidad" name="cantidad" 
+                                   min="1" required>
+                            <small class="form-text text-muted">Stock disponible: <span id="stock-disponible">-</span></small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tecnico_solicitante_id" class="form-label">Técnico Solicitante</label>
+                            <select class="form-select" id="tecnico_solicitante_id" name="tecnico_solicitante_id">
+                                <option value="">Seleccione un técnico...</option>
+                                {% for tecnico in tecnicos %}
+                                <option value="{{ tecnico.id }}">{{ tecnico.nombre_completo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="vehiculo_cliente_id" class="form-label">Cliente/Vehículo</label>
+                            <select class="form-select" id="cliente_id" name="cliente_id">
+                                <option value="">Seleccione un cliente...</option>
+                                {% for cliente in clientes %}
+                                <option value="{{ cliente.id }}">
+                                    {{ cliente.nombre_completo }} - {{ cliente.numero_documento }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3" id="vehiculos-container" style="display: none;">
+                            <label for="vehiculo_cliente_id" class="form-label">Vehículo</label>
+                            <select class="form-select" id="vehiculo_cliente_id" name="vehiculo_cliente_id">
+                                <option value="">Seleccione un vehículo...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="observaciones" class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="observaciones" name="observaciones" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('lista_movimientos') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-save"></i> Registrar Salida
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Mostrar stock disponible
+    $('#repuesto_id').change(function() {
+        const stock = $(this).find(':selected').data('stock');
+        $('#stock-disponible').text(stock || '-');
+    });
+    
+    // Cargar vehículos del cliente
+    $('#cliente_id').change(function() {
+        const clienteId = $(this).val();
+        
+        if (clienteId) {
+            $.ajax({
+                url: `/api/vehiculos-cliente/${clienteId}`,
+                method: 'GET',
+                success: function(vehiculos) {
+                    const select = $('#vehiculo_cliente_id');
+                    select.empty().append('<option value="">Seleccione un vehículo...</option>');
+                    
+                    vehiculos.forEach(function(vehiculo) {
+                        select.append(
+                            `<option value="${vehiculo.placa}">
+                                ${vehiculo.placa} - ${vehiculo.marca} ${vehiculo.modelo}
+                            </option>`
+                        );
+                    });
+                    
+                    $('#vehiculos-container').show();
+                },
+                error: function() {
+                    alert('Error al cargar los vehículos del cliente');
+                }
+            });
+        } else {
+            $('#vehiculos-container').hide();
+        }
+    });
+    
+    // Validar stock antes de enviar
+    $('form').submit(function(e) {
+        const cantidad = parseInt($('#cantidad').val());
+        const stock = parseInt($('#repuesto_id').find(':selected').data('stock'));
+        
+        if (cantidad > stock) {
+            e.preventDefault();
+            alert(`Stock insuficiente. Disponible: ${stock} unidades`);
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

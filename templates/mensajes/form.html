@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Mensaje{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('mensajes.bandeja_entrada') }}">Mensajes</a></li>
+                    <li class="breadcrumb-item active">Nuevo Mensaje</li>
+                </ol>
+            </nav>
+            <h1><i class="bi bi-envelope-plus"></i> Nuevo Mensaje</h1>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">Redactar Mensaje</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('mensajes.enviar') }}">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Para <span class="text-danger">*</span></label>
+                            <select class="form-select" name="destinatario_id" required>
+                                <option value="">Seleccione destinatario...</option>
+                                {% for u in usuarios %}
+                                <option value="{{ u.id }}" {% if u.id == destinatario_id %}selected{% endif %}>
+                                    {{ u.nombre_completo }} ({{ u.rol_nombre }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Asunto <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="asunto" required maxlength="200"
+                                   placeholder="Asunto del mensaje...">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Mensaje <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="mensaje" rows="6" required
+                                      placeholder="Escriba su mensaje aquí..."></textarea>
+                        </div>
+
+                        <!-- Vincular a otros objetos (opcional) -->
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#vinculosSection">
+                                <i class="bi bi-link-45deg"></i> Vincular a una alerta, solicitud o factura (opcional)
+                            </button>
+                        </div>
+                        <div class="collapse mb-3" id="vinculosSection">
+                            <div class="card card-body bg-light">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold">Alerta</label>
+                                        <select class="form-select form-select-sm" name="alerta_id">
+                                            <option value="">Sin vincular</option>
+                                            {% for a in alertas %}
+                                            <option value="{{ a.id }}" {% if a.id == alerta_id %}selected{% endif %}>
+                                                #{{ a.id }} - {{ a.tipo_alerta }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold">Solicitud</label>
+                                        <select class="form-select form-select-sm" name="solicitud_id">
+                                            <option value="">Sin vincular</option>
+                                            {% for s in solicitudes %}
+                                            <option value="{{ s.id }}" {% if s.id == solicitud_id %}selected{% endif %}>
+                                                {{ s.numero_solicitud }} ({{ s.estado }})
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold">Factura</label>
+                                        <select class="form-select form-select-sm" name="factura_id">
+                                            <option value="">Sin vincular</option>
+                                            {% for f in facturas %}
+                                            <option value="{{ f.id }}" {% if f.id == factura_id %}selected{% endif %}>
+                                                {{ f.numero_factura }} ({{ f.estado }})
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{{ url_for('mensajes.bandeja_entrada') }}" class="btn btn-secondary">
+                                <i class="bi bi-x"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send"></i> Enviar Mensaje
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Si hay vínculos pre-seleccionados, expandir la sección
+{% if alerta_id or solicitud_id or factura_id %}
+document.addEventListener('DOMContentLoaded', function() {
+    var el = document.getElementById('vinculosSection');
+    if (el) new bootstrap.Collapse(el, { show: true });
+});
+{% endif %}
+</script>
+{% endblock %}
+{% endblock %}

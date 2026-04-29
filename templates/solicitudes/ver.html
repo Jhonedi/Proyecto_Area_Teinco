@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+{% block title %}Solicitud {{ solicitud.numero_solicitud }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('solicitudes.lista_solicitudes') }}">Solicitudes</a></li>
+                    <li class="breadcrumb-item active">{{ solicitud.numero_solicitud }}</li>
+                </ol>
+            </nav>
+            <h1><i class="bi bi-file-earmark-text"></i> Solicitud {{ solicitud.numero_solicitud }}</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Info de la solicitud -->
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Información General</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-5">Estado:</dt>
+                        <dd class="col-7">
+                            {% set estado_colors = {'PENDIENTE': 'warning', 'APROBADA': 'info', 'RECHAZADA': 'danger', 'ENTREGADA': 'success', 'FACTURADA': 'primary', 'ANULADA': 'secondary'} %}
+                            <span class="badge bg-{{ estado_colors.get(solicitud.estado, 'secondary') }} fs-6">{{ solicitud.estado }}</span>
+                        </dd>
+                        <dt class="col-5">Técnico:</dt>
+                        <dd class="col-7">{{ solicitud.tecnico_nombre }}</dd>
+                        <dt class="col-5">Cliente:</dt>
+                        <dd class="col-7">{{ solicitud.cliente_nombre }}</dd>
+                        <dt class="col-5">Vehículo:</dt>
+                        <dd class="col-7"><span class="badge bg-dark">{{ solicitud.placa }}</span></dd>
+                        <dt class="col-5">Creada:</dt>
+                        <dd class="col-7"><small>{{ solicitud.created_at.strftime('%d/%m/%Y %H:%M') if solicitud.created_at else '' }}</small></dd>
+                        {% if solicitud.aprobado_por_nombre %}
+                        <dt class="col-5">Aprobada por:</dt>
+                        <dd class="col-7">{{ solicitud.aprobado_por_nombre }}</dd>
+                        {% endif %}
+                        {% if solicitud.fecha_aprobacion %}
+                        <dt class="col-5">Fecha aprobación:</dt>
+                        <dd class="col-7"><small>{{ solicitud.fecha_aprobacion.strftime('%d/%m/%Y %H:%M') if solicitud.fecha_aprobacion else '' }}</small></dd>
+                        {% endif %}
+                    </dl>
+                    {% if solicitud.observaciones %}
+                    <hr>
+                    <p class="mb-0"><strong>Observaciones:</strong><br>{{ solicitud.observaciones }}</p>
+                    {% endif %}
+                    {% if solicitud.motivo_rechazo %}
+                    <hr>
+                    <div class="alert alert-danger mb-0">
+                        <strong>Motivo de rechazo:</strong><br>{{ solicitud.motivo_rechazo }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Acciones -->
+            {% if solicitud.estado == 'PENDIENTE' and can_approve %}
+            <div class="card mb-3">
+                <div class="card-header bg-warning">
+                    <h6 class="mb-0"><i class="bi bi-lightning"></i> Acciones</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('solicitudes.aprobar_solicitud', id=solicitud.id) }}" class="mb-2"
+                          onsubmit="return confirm('¿Aprobar esta solicitud?')">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-check-circle"></i> Aprobar Solicitud
+                        </button>
+                    </form>
+                    <button class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#modalRechazar">
+                        <i class="bi bi-x-circle"></i> Rechazar Solicitud
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if solicitud.estado == 'APROBADA' and can_deliver %}
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-lightning"></i> Acciones</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('solicitudes.marcar_entrega', id=solicitud.id) }}"
+                          onsubmit="return confirm('¿Confirmar entrega de los repuestos?')">
+                        <button type="submit" class="btn btn-info text-white w-100">
+                            <i class="bi bi-box-arrow-up"></i> Confirmar Entrega
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if solicitud.estado == 'ENTREGADA' and (permissions.can_create_sales or permissions.can_confirm_sales) %}
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="bi bi-receipt"></i> Facturación</h6>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('facturacion.crear_desde_solicitud', solicitud_id=solicitud.id) }}" class="btn btn-success w-100">
+                        <i class="bi bi-receipt"></i> Crear Factura
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Items de la solicitud -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="bi bi-box-seam"></i> Repuestos Solicitados</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Repuesto</th>
+                                    <th class="text-center">Solicitado</th>
+                                    <th class="text-center">Aprobado</th>
+                                    <th class="text-center">Entregado</th>
+                                    <th class="text-center">Devuelto</th>
+                                    <th>Precio Unit.</th>
+                                    <th>Estado</th>
+                                    {% if solicitud.estado == 'ENTREGADA' and can_deliver %}
+                                    <th>Acción</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr>
+                                    <td>
+                                        <div><code>{{ item.repuesto_codigo }}</code></div>
+                                        <small>{{ item.repuesto_nombre }}</small>
+                                    </td>
+                                    <td class="text-center">{{ item.cantidad_solicitada }}</td>
+                                    <td class="text-center">{{ item.cantidad_aprobada or '-' }}</td>
+                                    <td class="text-center">{{ item.cantidad_entregada or '-' }}</td>
+                                    <td class="text-center">{{ item.cantidad_devuelta or '-' }}</td>
+                                    <td>{{ item.precio_unitario|formato_cop_moneda if item.precio_unitario else '-' }}</td>
+                                    <td>
+                                        {% set item_colors = {'PENDIENTE': 'warning', 'APROBADO': 'info', 'RECHAZADO': 'danger', 'ENTREGADO': 'success', 'DEVUELTO': 'secondary'} %}
+                                        <span class="badge bg-{{ item_colors.get(item.estado, 'secondary') }}">{{ item.estado }}</span>
+                                    </td>
+                                    {% if solicitud.estado == 'ENTREGADA' and can_deliver %}
+                                    <td>
+                                        {% if item.estado == 'ENTREGADO' and item.cantidad_entregada > item.cantidad_devuelta %}
+                                        <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal"
+                                                data-bs-target="#modalDevolver{{ item.id }}">
+                                            <i class="bi bi-arrow-return-left"></i> Devolver
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Timeline de Trazabilidad ── -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="bi bi-clock-history"></i> Historial de Trazabilidad</h6>
+                </div>
+                <div class="card-body py-3">
+                    <div class="d-flex flex-wrap gap-0 align-items-start" id="timeline">
+
+                        <!-- Creación -->
+                        <div class="timeline-step">
+                            <div class="timeline-icon bg-primary text-white">
+                                <i class="bi bi-plus-circle-fill"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-label">Creada</div>
+                                <div class="timeline-actor">{{ solicitud.tecnico_nombre }}</div>
+                                <div class="timeline-date">{{ solicitud.created_at.strftime('%d/%m/%Y %H:%M') if solicitud.created_at else '' }}</div>
+                            </div>
+                        </div>
+
+                        {% if solicitud.estado == 'RECHAZADA' %}
+                        <!-- Rechazo -->
+                        <div class="timeline-connector bg-danger"></div>
+                        <div class="timeline-step">
+                            <div class="timeline-icon bg-danger text-white">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-label text-danger">Rechazada</div>
+                                <div class="timeline-actor">{{ solicitud.aprobado_por_nombre or '-' }}</div>
+                                <div class="timeline-date">{{ solicitud.fecha_aprobacion.strftime('%d/%m/%Y %H:%M') if solicitud.fecha_aprobacion else '' }}</div>
+                            </div>
+                        </div>
+
+                        {% elif solicitud.aprobado_por_nombre or solicitud.fecha_aprobacion %}
+                        <!-- Aprobación -->
+                        <div class="timeline-connector bg-info"></div>
+                        <div class="timeline-step">
+                            <div class="timeline-icon bg-info text-white">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-label text-info">Aprobada</div>
+                                <div class="timeline-actor">{{ solicitud.aprobado_por_nombre or '-' }}</div>
+                                <div class="timeline-date">{{ solicitud.fecha_aprobacion.strftime('%d/%m/%Y %H:%M') if solicitud.fecha_aprobacion else '' }}</div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Pendiente -->
+                        <div class="timeline-connector bg-light"></div>
+                        <div class="timeline-step opacity-50">
+                            <div class="timeline-icon bg-warning text-white">
+                                <i class="bi bi-hourglass-split"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-label text-warning">Pendiente aprobación</div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if solicitud.entregado_por_nombre or solicitud.fecha_entrega %}
+                        <!-- Entrega -->
+                        <div class="timeline-connector bg-success"></div>
+                        <div class="timeline-step">
+                            <div class="timeline-icon bg-success text-white">
+                                <i class="bi bi-box-arrow-up-fill"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-label text-success">Entregada</div>
+                                <div class="timeline-actor">{{ solicitud.entregado_por_nombre or '-' }}</div>
+                                <div class="timeline-date">{{ solicitud.fecha_entrega.strftime('%d/%m/%Y %H:%M') if solicitud.fecha_entrega else '' }}</div>
+                            </div>
+                        </div>
+                        {% elif solicitud.estado not in ['RECHAZADA', 'ANULADA', 'PENDIENTE'] %}
+                        <div class="timeline-connector bg-light"></div>
+                        <div class="timeline-step opacity-50">
+                            <div class="timeline-icon bg-success text-white">
+                                <i class="bi bi-box-arrow-up"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-label text-success">Pendiente entrega</div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if solicitud.facturado_por_nombre or solicitud.fecha_facturacion %}
+                        <!-- Facturación -->
+                        <div class="timeline-connector bg-primary"></div>
+                        <div class="timeline-step">
+                            <div class="timeline-icon bg-primary text-white">
+                                <i class="bi bi-receipt-cutoff"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-label text-primary">Facturada</div>
+                                <div class="timeline-actor">{{ solicitud.facturado_por_nombre or '-' }}</div>
+                                <div class="timeline-date">{{ solicitud.fecha_facturacion.strftime('%d/%m/%Y %H:%M') if solicitud.fecha_facturacion else '' }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Rechazar -->
+<div class="modal fade" id="modalRechazar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('solicitudes.rechazar_solicitud', id=solicitud.id) }}">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-x-circle"></i> Rechazar Solicitud</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Motivo del rechazo <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="motivo_rechazo" rows="3" required
+                                  placeholder="Explique el motivo del rechazo..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Rechazar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modales Devolver items -->
+{% for item in items %}
+{% if item.estado == 'ENTREGADO' %}
+<div class="modal fade" id="modalDevolver{{ item.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('solicitudes.registrar_devolucion', id=solicitud.id) }}">
+                <input type="hidden" name="item_id" value="{{ item.id }}">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title"><i class="bi bi-arrow-return-left"></i> Devolver Repuesto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>{{ item.repuesto_nombre }}</strong></p>
+                    <p>Entregados: {{ item.cantidad_entregada }} | Ya devueltos: {{ item.cantidad_devuelta }}</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Cantidad a devolver</label>
+                        <input type="number" class="form-control" name="cantidad_devolver"
+                               min="1" max="{{ item.cantidad_entregada - item.cantidad_devuelta }}"
+                               value="{{ item.cantidad_entregada - item.cantidad_devuelta }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Motivo</label>
+                        <textarea class="form-control" name="motivo_devolucion" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Confirmar Devolución</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Repuestos - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1><i class="bi bi-box-seam"></i> Gestión de Repuestos</h1>
+        </div>
+        <div class="col-md-6 text-end">
+            {% if permissions.can_approve_adjustments %}
+            <a href="{{ url_for('ajustes_pendientes') }}" class="btn btn-outline-warning me-2">
+                <i class="bi bi-sliders"></i> Ajustes Pendientes
+            </a>
+            {% endif %}
+            {% if permissions.can_edit_inventory %}
+            <a href="{{ url_for('nuevo_repuesto') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Nuevo Repuesto
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filtros y Búsqueda -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('lista_repuestos') }}">
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" name="search"
+                                   placeholder="Buscar por código o nombre..." value="{{ search }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" name="categoria">
+                            <option value="">Todas las categorías</option>
+                            {% for cat in categorias %}
+                            <option value="{{ cat.id }}" {% if cat.id == categoria_id %}selected{% endif %}>
+                                {{ cat.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary me-2">Filtrar</button>
+                        <a href="{{ url_for('lista_repuestos') }}" class="btn btn-secondary">Limpiar</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Repuestos -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Precio</th>
+                            <th class="text-center">Stock Actual</th>
+                            <th class="text-center">Stock Mín.</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for repuesto in repuestos %}
+                        <tr onclick="loadRepuestosDetalle('{{ repuesto.codigo }}')" style="cursor:pointer" title="Clic para ver detalle del repuesto">
+                            <td><code>{{ repuesto.codigo }}</code></td>
+                            <td>{{ repuesto.nombre }}</td>
+                            <td>
+                                {% if repuesto.categoria_nombre %}
+                                <span class="badge bg-secondary">{{ repuesto.categoria_nombre }}</span>
+                                {% else %}
+                                <span class="text-muted">Sin categoría</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ repuesto.precio_venta|formato_cop_moneda }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-{% if repuesto.cantidad_actual == 0 %}danger{% elif repuesto.cantidad_actual <= repuesto.cantidad_minima %}warning{% else %}success{% endif %}">
+                                    {{ repuesto.cantidad_actual }}
+                                </span>
+                            </td>
+                            <td class="text-center">{{ repuesto.cantidad_minima }}</td>
+                            <td>
+                                {% if repuesto.cantidad_actual == 0 %}
+                                    <span class="badge bg-danger">AGOTADO</span>
+                                {% elif repuesto.cantidad_actual <= repuesto.cantidad_minima %}
+                                    <span class="badge bg-warning">STOCK BAJO</span>
+                                {% else %}
+                                    <span class="badge bg-success">DISPONIBLE</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <!-- Ver Detalle -->
+                                    <button class="btn btn-outline-info" title="Ver detalle"
+                                            onclick="loadRepuestosDetalle('{{ repuesto.codigo }}')">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    {% if permissions.can_edit_inventory %}
+                                    <a href="{{ url_for('editar_repuesto', codigo=repuesto.codigo) }}"
+                                       class="btn btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{{ url_for('ajustar_cantidad_repuesto', codigo=repuesto.codigo) }}"
+                                       class="btn btn-outline-warning" title="Ajustar Cantidad">
+                                        <i class="bi bi-sliders"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if permissions.can_manage_users %}
+                                    <form method="POST" action="{{ url_for('eliminar_repuesto', codigo=repuesto.codigo) }}"
+                                          style="display: inline;"
+                                          onsubmit="return confirm('¿Está seguro de eliminar este repuesto?');">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-box-seam fs-3 d-block mb-2"></i>
+                                No se encontraron repuestos
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if total_pages > 1 %}
+            <div class="p-3">
+                <nav>
+                    <ul class="pagination justify-content-center mb-0">
+                        {% for p in range(1, total_pages + 1) %}
+                        <li class="page-item {% if p == page %}active{% endif %}">
+                            <a class="page-link" href="?page={{ p }}{% if search %}&search={{ search }}{% endif %}{% if categoria_id %}&categoria={{ categoria_id }}{% endif %}">
+                                {{ p }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detalle Repuesto -->
+<div class="modal fade repuesto-detail-modal" id="modalDetalleRepuesto" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-box-seam"></i> Detalle del Repuesto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Cargando...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

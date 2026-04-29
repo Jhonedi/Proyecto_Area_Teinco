@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Movimientos de Inventario - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1><i class="bi bi-arrow-left-right"></i> Movimientos de Inventario</h1>
+            <p class="text-muted">Historial de entradas y salidas</p>
+        </div>
+        <div class="col-md-6 text-end">
+            {% if permissions.can_edit_inventory %}
+            <a href="{{ url_for('entrada_inventario') }}" class="btn btn-success">
+                <i class="bi bi-arrow-down-circle"></i> Nueva Entrada
+            </a>
+            <a href="{{ url_for('salida_inventario') }}" class="btn btn-danger">
+                <i class="bi bi-arrow-up-circle"></i> Nueva Salida
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="tipo" class="form-label">Tipo de Movimiento</label>
+                            <select class="form-select" id="tipo" name="tipo">
+                                <option value="">Todos</option>
+                                <option value="ENTRADA" {% if tipo == 'ENTRADA' %}selected{% endif %}>Entradas</option>
+                                <option value="SALIDA" {% if tipo == 'SALIDA' %}selected{% endif %}>Salidas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Filtrar
+                            </button>
+                            <a href="{{ url_for('lista_movimientos') }}" class="btn btn-secondary ms-2">
+                                <i class="bi bi-x-circle"></i> Limpiar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabla de Movimientos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if movimientos %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Fecha</th>
+                                    <th>Repuesto</th>
+                                    <th>Tipo</th>
+                                    <th>Cantidad</th>
+                                    <th>Usuario</th>
+                                    <th>Técnico</th>
+                                    <th>Estado</th>
+                                    <th>Observaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mov in movimientos %}
+                                <tr>
+                                    <td>{{ mov.id }}</td>
+                                    <td>{{ mov.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>
+                                        <strong>{{ mov.repuesto_nombre }}</strong><br>
+                                        <small class="text-muted">{{ mov.repuesto_codigo }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if mov.tipo == 'ENTRADA' else 'danger' }}">
+                                            {% if mov.tipo == 'ENTRADA' %}
+                                                <i class="bi bi-arrow-down"></i>
+                                            {% else %}
+                                                <i class="bi bi-arrow-up"></i>
+                                            {% endif %}
+                                            {{ mov.tipo_movimiento }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center"><strong>{{ mov.cantidad }}</strong></td>
+                                    <td>{{ mov.usuario }}</td>
+                                    <td>{{ mov.tecnico_solicitante or '-' }}</td>
+                                    <td>
+                                        {% if mov.estado == 'CONFIRMADO' %}
+                                            <span class="badge bg-success">Confirmado</span>
+                                        {% elif mov.estado == 'PENDIENTE' %}
+                                            <span class="badge bg-warning">Pendiente</span>
+                                        {% elif mov.estado == 'CANCELADO' %}
+                                            <span class="badge bg-danger">Cancelado</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ mov.estado }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ mov.observaciones or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Paginación -->
+                    {% if total_pages > 1 %}
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('lista_movimientos', page=page-1, tipo=tipo) }}">Anterior</a>
+                            </li>
+                            {% for p in range(1, total_pages + 1) %}
+                                <li class="page-item {% if p == page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('lista_movimientos', page=p, tipo=tipo) }}">{{ p }}</a>
+                                </li>
+                            {% endfor %}
+                            <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('lista_movimientos', page=page+1, tipo=tipo) }}">Siguiente</a>
+                            </li>
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i> No hay movimientos registrados
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

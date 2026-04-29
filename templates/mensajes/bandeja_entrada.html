@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Bandeja de Entrada{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h1><i class="bi bi-envelope"></i> Mensajes Internos</h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('mensajes.nuevo') }}" class="btn btn-primary">
+                <i class="bi bi-envelope-plus"></i> Nuevo Mensaje
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link active" href="{{ url_for('mensajes.bandeja_entrada') }}">
+                <i class="bi bi-inbox"></i> Bandeja de Entrada
+                <span class="badge bg-info ms-1" id="mensajes-count-tab"></span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('mensajes.mensajes_enviados') }}">
+                <i class="bi bi-send"></i> Enviados
+            </a>
+        </li>
+    </ul>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>De</th>
+                            <th>Asunto</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for msg in mensajes %}
+                        <tr class="{% if not msg.leido %}fw-bold{% endif %}" style="cursor:pointer"
+                            onclick="window.location='{{ url_for('mensajes.ver_mensaje', id=msg.id) }}'">
+                            <td>
+                                <i class="bi bi-person-circle"></i>
+                                {{ msg.remitente_nombre }}
+                                <small class="text-muted">({{ msg.remitente_username }})</small>
+                            </td>
+                            <td>
+                                {% if not msg.leido %}
+                                <span class="badge bg-info me-1">NUEVO</span>
+                                {% endif %}
+                                {{ msg.asunto }}
+                                {% if msg.alerta_id %}<span class="badge bg-warning ms-1"><i class="bi bi-exclamation-triangle"></i> Alerta</span>{% endif %}
+                                {% if msg.solicitud_id %}<span class="badge bg-primary ms-1"><i class="bi bi-file-earmark-text"></i> Solicitud</span>{% endif %}
+                                {% if msg.factura_id %}<span class="badge bg-success ms-1"><i class="bi bi-receipt"></i> Factura</span>{% endif %}
+                            </td>
+                            <td><small class="text-muted">{{ msg.created_at.strftime('%d/%m/%Y %H:%M') if msg.created_at else '' }}</small></td>
+                            <td>
+                                {% if msg.leido %}
+                                <span class="badge bg-secondary"><i class="bi bi-check2-all"></i> Leído</span>
+                                {% else %}
+                                <span class="badge bg-info"><i class="bi bi-envelope-fill"></i> No leído</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                No hay mensajes en tu bandeja de entrada
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if total_pages > 1 %}
+            <div class="p-3">
+                <nav>
+                    <ul class="pagination justify-content-center mb-0">
+                        {% for p in range(1, total_pages+1) %}
+                        <li class="page-item {% if p == page %}active{% endif %}">
+                            <a class="page-link" href="?page={{ p }}">{{ p }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

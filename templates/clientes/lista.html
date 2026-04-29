@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1><i class="bi bi-person-badge"></i> Gestión de Clientes</h1>
+            <p class="text-muted">Administra la información de tus clientes y sus vehículos</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('nuevo_cliente') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Nuevo Cliente
+            </a>
+        </div>
+    </div>
+    
+    <!-- Búsqueda -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('lista_clientes') }}">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" name="search" 
+                                   placeholder="Buscar por documento o nombre..." value="{{ search }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary me-2">Buscar</button>
+                        <a href="{{ url_for('lista_clientes') }}" class="btn btn-secondary">Limpiar</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Tabla de Clientes -->
+    <div class="card">
+        <div class="card-body">
+            {% if clientes %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Documento</th>
+                            <th>Nombre Completo</th>
+                            <th>Teléfono</th>
+                            <th>Email</th>
+                            <th>Fecha Registro</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in clientes %}
+                        <tr data-href="{{ url_for('vehiculos_cliente', numero_documento=cliente.numero_documento) }}" title="Clic para ver vehículos del cliente">
+                            <td>
+                                <span class="badge bg-secondary">{{ cliente.tipo_documento }}</span>
+                                {{ cliente.numero_documento }}
+                            </td>
+                            <td><strong>{{ cliente.nombre_completo }}</strong></td>
+                            <td>{{ cliente.telefono | formato_telefono }}</td>
+                            <td>{{ cliente.email or '-' }}</td>
+                            <td>{{ cliente.created_at.strftime('%d/%m/%Y') if cliente.created_at else '-' }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('vehiculos_cliente', numero_documento=cliente.numero_documento) }}"
+                                       class="btn btn-outline-info" title="Ver Vehículos">
+                                        <i class="bi bi-car-front"></i>
+                                    </a>
+                                    <a href="{{ url_for('editar_cliente', numero_documento=cliente.numero_documento) }}"
+                                       class="btn btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if total_pages > 1 %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                        <a class="page-link" href="?page={{ page-1 }}{% if search %}&search={{ search }}{% endif %}">Anterior</a>
+                    </li>
+                    {% for p in range(1, total_pages + 1) %}
+                    <li class="page-item {% if p == page %}active{% endif %}">
+                        <a class="page-link" href="?page={{ p }}{% if search %}&search={{ search }}{% endif %}">{{ p }}</a>
+                    </li>
+                    {% endfor %}
+                    <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                        <a class="page-link" href="?page={{ page+1 }}{% if search %}&search={{ search }}{% endif %}">Siguiente</a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle"></i> No se encontraron clientes
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

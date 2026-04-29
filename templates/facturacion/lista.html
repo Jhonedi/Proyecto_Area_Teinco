@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Facturación{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h1><i class="bi bi-receipt"></i> Facturación</h1>
+        </div>
+        <div class="col-md-6 text-end">
+            {% if permissions.can_approve_requests %}
+            <a href="{{ url_for('solicitudes.lista_solicitudes', estado='ENTREGADA') }}" class="btn btn-outline-success me-2">
+                <i class="bi bi-file-earmark-check"></i> Solicitudes por Facturar
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <form method="GET" class="row g-2 align-items-center">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" name="search"
+                               placeholder="Buscar por # factura, cliente, placa..." value="{{ search or '' }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" name="estado">
+                        <option value="">Todos los estados</option>
+                        {% for e in estados %}
+                        <option value="{{ e }}" {% if e == estado %}selected{% endif %}>{{ e }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary me-2"><i class="bi bi-funnel"></i> Filtrar</button>
+                    <a href="{{ url_for('facturacion.lista_facturas') }}" class="btn btn-secondary"><i class="bi bi-x"></i> Limpiar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th># Factura</th>
+                            <th>Cliente</th>
+                            <th>Vehículo</th>
+                            <th>Vendedor</th>
+                            <th>Total</th>
+                            <th>Pagado</th>
+                            <th>Estado</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in facturas %}
+                        <tr data-href="{{ url_for('facturacion.ver_factura', id=f.id) }}" title="Clic para ver detalle de la factura">
+                            <td><code class="fw-bold">{{ f.numero_factura }}</code></td>
+                            <td>
+                                <div>{{ f.cliente_nombre }}</div>
+                                <small class="text-muted">{{ f.cliente_documento }}</small>
+                            </td>
+                            <td>
+                                {% if f.placa %}
+                                <span class="badge bg-dark">{{ f.placa }}</span>
+                                {% else %}<span class="text-muted">-</span>{% endif %}
+                            </td>
+                            <td><small>{{ f.vendedor_nombre }}</small></td>
+                            <td class="fw-bold">{{ f.total|formato_cop_moneda }}</td>
+                            <td>
+                                {% if f.total_pagado %}
+                                <span class="text-success fw-bold">{{ f.total_pagado|formato_cop_moneda }}</span>
+                                {% else %}<span class="text-muted">$0</span>{% endif %}
+                            </td>
+                            <td>
+                                {% set est_colors = {'EN_ESPERA': 'secondary', 'PENDIENTE': 'warning', 'PAGADA': 'success', 'ANULADA': 'danger'} %}
+                                <span class="badge bg-{{ est_colors.get(f.estado, 'secondary') }}">{{ f.estado }}</span>
+                            </td>
+                            <td><small>{{ f.created_at.strftime('%d/%m/%Y') if f.created_at else '' }}</small></td>
+                            <td>
+                                <a href="{{ url_for('facturacion.ver_factura', id=f.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="bi bi-receipt fs-3 d-block mb-2"></i>
+                                No se encontraron facturas
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if total_pages > 1 %}
+            <div class="p-3">
+                <nav>
+                    <ul class="pagination justify-content-center mb-0">
+                        {% for p in range(1, total_pages+1) %}
+                        <li class="page-item {% if p == page %}active{% endif %}">
+                            <a class="page-link" href="?page={{ p }}{% if search %}&search={{ search }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}">{{ p }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

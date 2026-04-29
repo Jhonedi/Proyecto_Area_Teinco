@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}Crear Factura - Solicitud {{ solicitud.numero_solicitud }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('facturacion.lista_facturas') }}">Facturación</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('solicitudes.ver_solicitud', id=solicitud.id) }}">{{ solicitud.numero_solicitud }}</a></li>
+                    <li class="breadcrumb-item active">Crear Factura</li>
+                </ol>
+            </nav>
+            <h1><i class="bi bi-receipt"></i> Crear Factura</h1>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('facturacion.crear_factura') }}" id="factura-form">
+        <input type="hidden" name="solicitud_id" value="{{ solicitud.id }}">
+        <input type="hidden" name="cliente_id" value="{{ solicitud.cliente_id }}">
+        <input type="hidden" name="vehiculo_cliente_id" value="{{ solicitud.vehiculo_id }}">
+
+        <div class="row">
+            <div class="col-md-4">
+                <!-- Info del servicio -->
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="bi bi-info-circle"></i> Información del Servicio</h6>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-5">Solicitud:</dt>
+                            <dd class="col-7"><code>{{ solicitud.numero_solicitud }}</code></dd>
+                            <dt class="col-5">Técnico:</dt>
+                            <dd class="col-7">{{ solicitud.tecnico_nombre }}</dd>
+                            <dt class="col-5">Cliente:</dt>
+                            <dd class="col-7">{{ solicitud.cliente_nombre }}</dd>
+                            <dt class="col-5">Documento:</dt>
+                            <dd class="col-7">{{ solicitud.cliente_documento }}</dd>
+                            <dt class="col-5">Vehículo:</dt>
+                            <dd class="col-7"><span class="badge bg-dark">{{ solicitud.placa }}</span></dd>
+                            <dt class="col-5">Marca/Mod:</dt>
+                            <dd class="col-7">{{ solicitud.marca_nombre }} {{ solicitud.modelo_nombre }} {{ solicitud.anio }}</dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- Opciones de pago -->
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="bi bi-cash-coin"></i> Opciones de Pago</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Método de pago <span class="text-danger">*</span></label>
+                            <select class="form-select" name="metodo_pago" id="metodo_pago" required>
+                                {% for m in metodos_pago %}
+                                <option value="{{ m }}">{{ m }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3" id="dias-credito-div" style="display:none">
+                            <label class="form-label fw-bold">Días de crédito</label>
+                            <input type="number" class="form-control" name="dias_vencimiento" min="1" max="365" value="30">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Código de Descuento</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control text-uppercase" id="codigo_descuento_input"
+                                       placeholder="Ej: DESC10, PROMO20" maxlength="20"
+                                       style="text-transform:uppercase">
+                                <button type="button" class="btn btn-outline-primary" id="btn-aplicar-descuento">
+                                    <i class="bi bi-tag"></i> Aplicar
+                                </button>
+                            </div>
+                            <div id="descuento-info" class="mt-1" style="display:none"></div>
+                            <input type="hidden" name="descuento_global" id="descuento_global" value="0">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Observaciones</label>
+                            <textarea class="form-control" name="observaciones" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Totales -->
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h6 class="mb-0"><i class="bi bi-calculator"></i> Resumen</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm mb-0">
+                            <tr>
+                                <td>Subtotal:</td>
+                                <td class="text-end fw-bold" id="resumen-subtotal">{{ subtotal|formato_cop_moneda }}</td>
+                            </tr>
+                            <tr>
+                                <td>Descuento:</td>
+                                <td class="text-end text-danger" id="resumen-descuento">$0</td>
+                            </tr>
+                            <tr>
+                                <td>IVA ({{ iva_porcentaje }}%):</td>
+                                <td class="text-end" id="resumen-iva">{{ iva|formato_cop_moneda }}</td>
+                            </tr>
+                            <tr class="table-dark">
+                                <td class="fw-bold fs-5">TOTAL:</td>
+                                <td class="text-end fw-bold fs-5" id="resumen-total">{{ total|formato_cop_moneda }}</td>
+                            </tr>
+                        </table>
+                        <input type="hidden" name="subtotal" id="hidden-subtotal" value="{{ subtotal }}">
+                        <input type="hidden" name="impuesto" id="hidden-iva" value="{{ iva }}">
+                        <input type="hidden" name="total" id="hidden-total" value="{{ total }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <!-- Items -->
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="bi bi-box-seam"></i> Items a Facturar</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Repuesto</th>
+                                        <th class="text-center">Cantidad</th>
+                                        <th>Precio Unit.</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in items %}
+                                    {% set cant = item.cantidad_entregada - (item.cantidad_devuelta or 0) %}
+                                    {% if cant > 0 %}
+                                    <tr>
+                                        <td>
+                                            <div><code>{{ item.repuesto_codigo }}</code> - {{ item.repuesto_nombre }}</div>
+                                        </td>
+                                        <td class="text-center">{{ cant }}</td>
+                                        <td>{{ item.precio_unitario|formato_cop_moneda }}</td>
+                                        <td class="fw-bold">{{ (item.precio_unitario * cant)|formato_cop_moneda }}</td>
+                                    </tr>
+                                    <!-- Hidden inputs -->
+                                    <input type="hidden" name="repuesto_id[]" value="{{ item.repuesto_id }}">
+                                    <input type="hidden" name="cantidad[]" value="{{ cant }}">
+                                    <input type="hidden" name="precio_unitario[]" value="{{ item.precio_unitario }}">
+                                    <input type="hidden" name="item_solicitud_id[]" value="{{ item.id }}">
+                                    {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{{ url_for('solicitudes.ver_solicitud', id=solicitud.id) }}" class="btn btn-secondary">
+                        <i class="bi bi-x"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-receipt"></i> Crear Factura
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const subtotalBase = {{ subtotal }};
+const ivaPct = {{ iva_porcentaje }} / 100;
+
+$('#metodo_pago').on('change', function() {
+    $('#dias-credito-div').toggle($(this).val() === 'CREDITO');
+});
+
+function recalcularTotales(descuento) {
+    const base = subtotalBase - descuento;
+    const iva = base * ivaPct;
+    const total = base + iva;
+    $('#resumen-descuento').text(descuento > 0 ? '-' + formatCOP(descuento) : '$0');
+    $('#resumen-iva').text(formatCOP(iva));
+    $('#resumen-total').text(formatCOP(total));
+    $('#hidden-iva').val(iva.toFixed(2));
+    $('#hidden-total').val(total.toFixed(2));
+    $('#descuento_global').val(descuento.toFixed(2));
+}
+
+$('#btn-aplicar-descuento').on('click', function() {
+    const codigo = $('#codigo_descuento_input').val().trim().toUpperCase();
+    if (!codigo) return;
+    const $btn = $(this);
+    $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+    $.getJSON('/api/descuentos/' + encodeURIComponent(codigo))
+        .done(function(data) {
+            let descuento = 0;
+            let infoHtml = '';
+            if (data.tipo === 'PORCENTAJE') {
+                descuento = subtotalBase * (data.valor / 100);
+                infoHtml = '<span class="badge bg-success me-1">' + data.valor + '%</span>'
+                         + '<small class="text-success fw-bold">' + data.descripcion + '</small>'
+                         + ' <small class="text-muted">(-' + formatCOP(descuento) + ')</small>'
+                         + ' <a href="#" id="quitar-descuento" class="ms-2 small text-danger">✕ Quitar</a>';
+            } else {
+                descuento = data.valor;
+                infoHtml = '<span class="badge bg-success me-1">$' + formatCOP(data.valor) + '</span>'
+                         + '<small class="text-success fw-bold">' + data.descripcion + '</small>'
+                         + ' <a href="#" id="quitar-descuento" class="ms-2 small text-danger">✕ Quitar</a>';
+            }
+            $('#descuento-info').html(infoHtml).show();
+            recalcularTotales(descuento);
+        })
+        .fail(function(xhr) {
+            const msg = xhr.responseJSON ? xhr.responseJSON.error : 'Código no encontrado';
+            $('#descuento-info').html('<small class="text-danger"><i class="bi bi-x-circle"></i> ' + msg + '</small>').show();
+        })
+        .always(function() {
+            $btn.prop('disabled', false).html('<i class="bi bi-tag"></i> Aplicar');
+        });
+});
+
+$(document).on('click', '#quitar-descuento', function(e) {
+    e.preventDefault();
+    $('#codigo_descuento_input').val('');
+    $('#descuento-info').hide().html('');
+    recalcularTotales(0);
+});
+
+function formatCOP(val) {
+    return '$' + new Intl.NumberFormat('es-CO').format(Math.round(val));
+}
+</script>
+{% endblock %}

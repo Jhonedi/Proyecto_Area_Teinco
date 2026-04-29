@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Detalle Auditoría #{{ registro.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('audit.lista_audit') }}">Auditoría</a></li>
+                    <li class="breadcrumb-item active">Registro #{{ registro.id }}</li>
+                </ol>
+            </nav>
+            <h1><i class="bi bi-shield-check"></i> Detalle de Auditoría</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">Información del Evento</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-5">ID:</dt>
+                        <dd class="col-7">#{{ registro.id }}</dd>
+                        <dt class="col-5">Fecha:</dt>
+                        <dd class="col-7"><small>{{ registro.created_at.strftime('%d/%m/%Y %H:%M:%S') if registro.created_at else '' }}</small></dd>
+                        <dt class="col-5">Usuario:</dt>
+                        <dd class="col-7">
+                            <a href="{{ url_for('audit.acciones_usuario', usuario_id=registro.usuario_id) }}">
+                                {{ registro.usuario_nombre }}
+                            </a>
+                            <br><small class="text-muted">{{ registro.usuario_username }}</small>
+                        </dd>
+                        <dt class="col-5">Acción:</dt>
+                        <dd class="col-7">
+                            {% set acc_colors = {'CREAR': 'success', 'ACTUALIZAR': 'info', 'ELIMINAR': 'danger', 'APROBAR': 'primary', 'RECHAZAR': 'warning', 'LOGIN': 'secondary', 'LOGOUT': 'secondary'} %}
+                            <span class="badge bg-{{ acc_colors.get(registro.accion, 'secondary') }} fs-6">{{ registro.accion }}</span>
+                        </dd>
+                        <dt class="col-5">Tipo:</dt>
+                        <dd class="col-7"><span class="badge bg-secondary">{{ registro.tipo_cambio }}</span></dd>
+                        <dt class="col-5">Tabla:</dt>
+                        <dd class="col-7"><code>{{ registro.tabla_afectada }}</code></dd>
+                        <dt class="col-5">Registro:</dt>
+                        <dd class="col-7">#{{ registro.registro_id }}</dd>
+                        <dt class="col-5">IP:</dt>
+                        <dd class="col-7"><small>{{ registro.ip_address or '-' }}</small></dd>
+                        {% if registro.user_agent %}
+                        <dt class="col-5">User Agent:</dt>
+                        <dd class="col-7"><small class="text-muted">{{ registro.user_agent[:60] }}...</small></dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">Comparación de Datos</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if comparacion %}
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:33%">Campo</th>
+                                    <th style="width:33%">Valor Anterior</th>
+                                    <th style="width:33%">Valor Nuevo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in comparacion %}
+                                <tr class="{% if c.modificado %}audit-changed{% endif %}">
+                                    <td class="fw-bold text-capitalize">{{ c.campo.replace('_', ' ') }}</td>
+                                    <td>
+                                        {% if c.anterior == '---' %}
+                                        <span class="text-muted fst-italic">-</span>
+                                        {% else %}
+                                        <span class="{% if c.modificado %}text-danger{% endif %}">{{ c.anterior }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if c.nuevo == '---' %}
+                                        <span class="text-muted fst-italic">-</span>
+                                        {% else %}
+                                        <span class="{% if c.modificado %}text-success fw-bold{% endif %}">{{ c.nuevo }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center text-muted">
+                        No hay datos de comparación disponibles para este registro
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="{{ url_for('audit.lista_audit') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver a Auditoría
+        </a>
+        <a href="{{ url_for('audit.acciones_usuario', usuario_id=registro.usuario_id) }}" class="btn btn-outline-primary ms-2">
+            <i class="bi bi-person-lines-fill"></i> Ver historial de {{ registro.usuario_nombre }}
+        </a>
+    </div>
+</div>
+{% endblock %}

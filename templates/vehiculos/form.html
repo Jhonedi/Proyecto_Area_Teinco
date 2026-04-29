@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if vehiculo else 'Registrar' }} Vehículo - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="bi bi-car-front"></i> {{ 'Editar' if vehiculo else 'Registrar' }} Vehículo</h1>
+            <p class="text-muted">Cliente: <strong>{{ cliente.nombre_completo }}</strong></p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" id="formVehiculo">
+
+                        <!-- ========== PLACA ========== -->
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="placa" class="form-label">Placa <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control text-uppercase" id="placa" name="placa"
+                                           value="{{ vehiculo.placa if vehiculo else '' }}"
+                                           required maxlength="10" placeholder="ABC123 o ABC12D">
+                                    <small class="form-text text-muted">Formatos: ABC123 (autos) o ABC12D (motos)</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ========== MARCA + MODELO ========== -->
+                        <div class="row">
+
+                            <!-- MARCA -->
+                            <div class="col-md-6">
+                                <div class="mb-1">
+                                    <label for="marca_id" class="form-label">Marca <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <select class="form-select" id="marca_id" name="marca_id" required>
+                                            <option value="">Seleccione una marca...</option>
+                                            {% for marca in marcas %}
+                                            <option value="{{ marca.id }}"
+                                                    {% if vehiculo and vehiculo.marca_id == marca.id %}selected{% endif %}>
+                                                {{ marca.nombre }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="button" class="btn btn-outline-secondary" id="btnNuevaMarca"
+                                                title="Agregar nueva marca" data-bs-toggle="collapse"
+                                                data-bs-target="#panelNuevaMarca">
+                                            <i class="bi bi-plus-circle"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Panel nueva marca -->
+                                <div id="panelNuevaMarca" class="collapse mb-3 mt-1">
+                                    <div class="card card-body py-2 px-3 border-secondary bg-light">
+                                        <p class="mb-1 small fw-semibold text-secondary">Nueva marca</p>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control" id="inputNuevaMarca"
+                                                   placeholder="Ej: Renault, KIA, BYD..." maxlength="50">
+                                            <button type="button" class="btn btn-success" id="btnGuardarMarca">
+                                                <i class="bi bi-check-lg"></i> Guardar
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" id="btnCancelarMarca">
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                        <div id="feedbackMarca" class="mt-1 small"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- MODELO -->
+                            <div class="col-md-6">
+                                <div class="mb-1">
+                                    <label for="modelo_vehiculo_id" class="form-label">Modelo <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <select class="form-select" id="modelo_vehiculo_id" name="modelo_vehiculo_id" required>
+                                            {% if vehiculo %}
+                                                {# Modo edición: pre-cargar modelos de la marca actual #}
+                                                {% for modelo in modelos %}
+                                                {% if modelo.marca_id == vehiculo.marca_id %}
+                                                <option value="{{ modelo.id }}"
+                                                        {% if modelo.id == vehiculo.modelo_vehiculo_id %}selected{% endif %}>
+                                                    {{ modelo.nombre }}
+                                                </option>
+                                                {% endif %}
+                                                {% endfor %}
+                                            {% else %}
+                                                <option value="">Primero seleccione una marca...</option>
+                                            {% endif %}
+                                        </select>
+                                        <button type="button" class="btn btn-outline-secondary" id="btnNuevoModelo"
+                                                title="Agregar nuevo modelo" data-bs-toggle="collapse"
+                                                data-bs-target="#panelNuevoModelo"
+                                                {% if not vehiculo %}disabled{% endif %}>
+                                            <i class="bi bi-plus-circle"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Panel nuevo modelo -->
+                                <div id="panelNuevoModelo" class="collapse mb-3 mt-1">
+                                    <div class="card card-body py-2 px-3 border-secondary bg-light">
+                                        <p class="mb-1 small fw-semibold text-secondary">
+                                            Nuevo modelo para <span id="labelMarcaEnModelo" class="text-primary">la marca seleccionada</span>
+                                        </p>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control" id="inputNuevoModelo"
+                                                   placeholder="Ej: Spark, Sandero, Tucson..." maxlength="100">
+                                            <button type="button" class="btn btn-success" id="btnGuardarModelo">
+                                                <i class="bi bi-check-lg"></i> Guardar
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" id="btnCancelarModelo">
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                        <div id="feedbackModelo" class="mt-1 small"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ========== AÑO, COLOR, KM ========== -->
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="anio" class="form-label">Año</label>
+                                    <input type="number" class="form-control" id="anio" name="anio"
+                                           value="{{ vehiculo.anio if vehiculo else '' }}"
+                                           min="1900" max="2099" placeholder="2023">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="color" class="form-label">Color</label>
+                                    <input type="text" class="form-control" id="color" name="color"
+                                           value="{{ vehiculo.color if vehiculo else '' }}" placeholder="Rojo">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="kilometraje_actual" class="form-label">Kilometraje Actual</label>
+                                    <input type="number" class="form-control" id="kilometraje_actual" name="kilometraje_actual"
+                                           value="{{ vehiculo.kilometraje_actual if vehiculo else '' }}"
+                                           min="0" placeholder="50000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ========== MOTOR, CHASIS ========== -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="numero_motor" class="form-label">
+                                        <i class="bi bi-cpu text-secondary"></i> Número de Motor
+                                    </label>
+                                    <input type="text" class="form-control text-uppercase" id="numero_motor" name="numero_motor"
+                                           value="{{ vehiculo.numero_motor if vehiculo else '' }}"
+                                           placeholder="Ej: F16D3A1234567">
+                                    <small class="form-text text-muted">Usado para compatibilidad de repuestos por motor.</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="numero_chasis" class="form-label">
+                                        <i class="bi bi-upc text-secondary"></i> Número de Chasis (VIN)
+                                    </label>
+                                    <input type="text" class="form-control text-uppercase" id="numero_chasis" name="numero_chasis"
+                                           value="{{ vehiculo.numero_chasis if vehiculo else '' }}"
+                                           maxlength="17" placeholder="Ej: 1HGBH41JXMN109186">
+                                    <small class="form-text text-muted">VIN de 17 caracteres. Clave para compatibilidad de repuestos.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ========== OBSERVACIONES ========== -->
+                        <div class="mb-3">
+                            <label for="observaciones" class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="observaciones" name="observaciones" rows="3"
+                                      placeholder="Notas adicionales sobre el vehículo...">{{ vehiculo.observaciones if vehiculo else '' }}</textarea>
+                        </div>
+
+                        <!-- ========== PROPIETARIO + ESTADO (solo edición) ========== -->
+                        {% if vehiculo %}
+                        <hr>
+                        <div class="row align-items-end">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="cliente_id" class="form-label">
+                                        <i class="bi bi-person-badge"></i> Propietario actual
+                                    </label>
+                                    <select class="form-select" id="cliente_id" name="cliente_id">
+                                        {% for c in clientes %}
+                                        <option value="{{ c.numero_documento }}"
+                                                {% if c.numero_documento == vehiculo.cliente_id %}selected{% endif %}>
+                                            {{ c.nombre_completo }} — {{ c.tipo_documento }} {{ c.numero_documento }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        Cambia el propietario si el vehículo fue vendido o transferido. El historial se conserva.
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <div class="form-check form-switch fs-5 pt-2">
+                                        <input class="form-check-input" type="checkbox" id="activo" name="activo"
+                                               {% if vehiculo.activo %}checked{% endif %}>
+                                        <label class="form-check-label" for="activo">
+                                            <span id="activo-label">
+                                                {% if vehiculo.activo %}
+                                                    <span class="text-success fw-bold">Activo</span>
+                                                {% else %}
+                                                    <span class="text-secondary fw-bold">Inactivo</span>
+                                                {% endif %}
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <small class="form-text text-muted">Desactivar si el vehículo fue vendido.</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- ========== BOTONES ========== -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('vehiculos_cliente', numero_documento=cliente.numero_documento) }}"
+                               class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Guardar Vehículo
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/validacion_placas.js') }}"></script>
+<script>
+$(document).ready(function () {
+
+    aplicarValidacionPlaca('placa');
+
+    /* =====================================================
+       Helpers de feedback inline
+    ===================================================== */
+    function setFeedback(selector, msg, type) {
+        $(selector).html(
+            '<span class="text-' + type + '"><i class="bi bi-' +
+            (type === 'success' ? 'check-circle' : 'x-circle') +
+            '"></i> ' + msg + '</span>'
+        );
+        setTimeout(function () { $(selector).html(''); }, 4000);
+    }
+
+    /* =====================================================
+       Cascada Marca → Modelo
+    ===================================================== */
+    $('#marca_id').on('change', function () {
+        var marcaId  = $(this).val();
+        var marcaNom = $(this).find('option:selected').text().trim();
+        var $modelo  = $('#modelo_vehiculo_id');
+        var $btnMod  = $('#btnNuevoModelo');
+
+        // Actualizar etiqueta del panel de nuevo modelo
+        $('#labelMarcaEnModelo').text(marcaNom || 'la marca seleccionada');
+
+        if (!marcaId) {
+            $modelo.html('<option value="">Primero seleccione una marca...</option>');
+            $btnMod.prop('disabled', true);
+            // Cerrar panel si estaba abierto
+            var bsPanel = bootstrap.Collapse.getInstance(document.getElementById('panelNuevoModelo'));
+            if (bsPanel) bsPanel.hide();
+            return;
+        }
+
+        $modelo.html('<option value="">Cargando modelos...</option>').prop('disabled', true);
+        $btnMod.prop('disabled', true);
+
+        $.get('/api/marcas/' + marcaId + '/modelos', function (data) {
+            if (data.length === 0) {
+                $modelo.html('<option value="">Sin modelos — agrega uno con el botón +</option>');
+            } else {
+                $modelo.html('<option value="">Seleccione un modelo...</option>');
+                $.each(data, function (_, m) {
+                    $modelo.append('<option value="' + m.id + '">' + m.nombre + '</option>');
+                });
+            }
+            $modelo.prop('disabled', false);
+            $btnMod.prop('disabled', false);
+        }).fail(function () {
+            $modelo.html('<option value="">Error cargando modelos</option>').prop('disabled', false);
+        });
+    });
+
+    // Si ya hay marca seleccionada (modo edición), actualizar etiqueta del panel
+    var $marcaActual = $('#marca_id option:selected');
+    if ($marcaActual.val()) {
+        $('#labelMarcaEnModelo').text($marcaActual.text().trim());
+    }
+
+    /* =====================================================
+       Nueva Marca
+    ===================================================== */
+    $('#btnCancelarMarca').on('click', function () {
+        bootstrap.Collapse.getInstance(document.getElementById('panelNuevaMarca')).hide();
+        $('#inputNuevaMarca').val('');
+        $('#feedbackMarca').html('');
+    });
+
+    $('#inputNuevaMarca').on('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); $('#btnGuardarMarca').trigger('click'); }
+    });
+
+    $('#btnGuardarMarca').on('click', function () {
+        var nombre = $('#inputNuevaMarca').val().trim().toUpperCase();
+        if (!nombre) { setFeedback('#feedbackMarca', 'Ingrese el nombre de la marca.', 'danger'); return; }
+
+        var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+
+        $.ajax({
+            url: '/api/marcas/nueva',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ nombre: nombre }),
+            success: function (data) {
+                // Agregar al select si no existe
+                if ($('#marca_id option[value="' + data.id + '"]').length === 0) {
+                    // Insertar en orden alfabético
+                    var insertada = false;
+                    $('#marca_id option').each(function () {
+                        if ($(this).text() > data.nombre && $(this).val()) {
+                            $(this).before('<option value="' + data.id + '">' + data.nombre + '</option>');
+                            insertada = true;
+                            return false;
+                        }
+                    });
+                    if (!insertada) {
+                        $('#marca_id').append('<option value="' + data.id + '">' + data.nombre + '</option>');
+                    }
+                }
+                $('#marca_id').val(data.id).trigger('change');
+                bootstrap.Collapse.getInstance(document.getElementById('panelNuevaMarca')).hide();
+                $('#inputNuevaMarca').val('');
+                setFeedback('#feedbackMarca',
+                    data.existing ? 'La marca ya existía. Seleccionada.' : 'Marca "' + data.nombre + '" creada.',
+                    data.existing ? 'warning' : 'success');
+            },
+            error: function (xhr) {
+                var msg = (xhr.responseJSON || {}).error || 'Error al crear la marca.';
+                setFeedback('#feedbackMarca', msg, 'danger');
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html('<i class="bi bi-check-lg"></i> Guardar');
+            }
+        });
+    });
+
+    /* =====================================================
+       Nuevo Modelo
+    ===================================================== */
+    $('#btnCancelarModelo').on('click', function () {
+        bootstrap.Collapse.getInstance(document.getElementById('panelNuevoModelo')).hide();
+        $('#inputNuevoModelo').val('');
+        $('#feedbackModelo').html('');
+    });
+
+    $('#inputNuevoModelo').on('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); $('#btnGuardarModelo').trigger('click'); }
+    });
+
+    $('#btnGuardarModelo').on('click', function () {
+        var marcaId  = $('#marca_id').val();
+        var nombre   = $('#inputNuevoModelo').val().trim();
+
+        if (!marcaId) { setFeedback('#feedbackModelo', 'Primero seleccione una marca.', 'danger'); return; }
+        if (!nombre)  { setFeedback('#feedbackModelo', 'Ingrese el nombre del modelo.', 'danger'); return; }
+
+        var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+
+        $.ajax({
+            url: '/api/modelos/nuevo',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ marca_id: parseInt(marcaId), nombre: nombre }),
+            success: function (data) {
+                var $sel = $('#modelo_vehiculo_id');
+                if ($sel.find('option[value="' + data.id + '"]').length === 0) {
+                    $sel.append('<option value="' + data.id + '">' + data.nombre + '</option>');
+                }
+                $sel.val(data.id);
+                bootstrap.Collapse.getInstance(document.getElementById('panelNuevoModelo')).hide();
+                $('#inputNuevoModelo').val('');
+                setFeedback('#feedbackModelo',
+                    data.existing ? 'El modelo ya existía. Seleccionado.' : 'Modelo "' + data.nombre + '" creado.',
+                    data.existing ? 'warning' : 'success');
+            },
+            error: function (xhr) {
+                var msg = (xhr.responseJSON || {}).error || 'Error al crear el modelo.';
+                setFeedback('#feedbackModelo', msg, 'danger');
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html('<i class="bi bi-check-lg"></i> Guardar');
+            }
+        });
+    });
+
+    /* =====================================================
+       Switch estado activo/inactivo (solo edición)
+    ===================================================== */
+    $('#activo').on('change', function () {
+        if ($(this).is(':checked')) {
+            $('#activo-label').html('<span class="text-success fw-bold">Activo</span>');
+        } else {
+            $('#activo-label').html('<span class="text-secondary fw-bold">Inactivo</span>');
+        }
+    });
+
+});
+</script>
+{% endblock %}

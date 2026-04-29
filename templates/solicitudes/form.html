@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block title %}Nueva Solicitud de Repuestos{% endblock %}
+
+{% block extra_css %}
+<style>
+.item-row { background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h1><i class="bi bi-plus-circle"></i> Nueva Solicitud de Repuestos</h1>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('solicitudes.nueva_solicitud') }}" id="solicitud-form">
+        <div class="row">
+            <!-- Columna izquierda: datos generales -->
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="bi bi-person"></i> Datos del Servicio</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cliente <span class="text-danger">*</span></label>
+                            <select class="form-select" name="cliente_id" id="cliente_id" required>
+                                <option value="">Seleccione cliente...</option>
+                                {% for cliente in clientes %}
+                                <option value="{{ cliente.id }}">{{ cliente.nombre_completo }} - {{ cliente.numero_documento }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Vehículo <span class="text-danger">*</span></label>
+                            <select class="form-select" name="vehiculo_id" id="vehiculo_id" required disabled>
+                                <option value="">Primero seleccione un cliente</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Observaciones</label>
+                            <textarea class="form-control" name="observaciones" rows="3" placeholder="Descripción del trabajo, falla reportada..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna derecha: items -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-box-seam"></i> Repuestos Solicitados</h6>
+                        <button type="button" class="btn btn-light btn-sm" id="agregar-item">
+                            <i class="bi bi-plus-circle"></i> Agregar Item
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="items-container">
+                            <!-- Items dinámicos aquí -->
+                        </div>
+                        <div id="no-items-msg" class="text-center text-muted py-3">
+                            <i class="bi bi-cart fs-3 d-block mb-2"></i>
+                            Haga clic en "Agregar Item" para añadir repuestos
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                    <a href="{{ url_for('solicitudes.lista_solicitudes') }}" class="btn btn-secondary">
+                        <i class="bi bi-x"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="btn-submit">
+                        <i class="bi bi-send"></i> Crear Solicitud
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Template para item -->
+<template id="item-template">
+    <div class="item-row border" data-index="IDX">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Categoría</label>
+                <select class="form-select form-select-sm categoria-select" name="categoria_id[]">
+                    <option value="">Todas las categorías</option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label small fw-bold">Repuesto <span class="text-danger">*</span></label>
+                <select class="form-select form-select-sm repuesto-select" name="repuesto_id[]" required>
+                    <option value="">Seleccione repuesto...</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Cantidad</label>
+                <input type="number" class="form-control form-control-sm" name="cantidad[]" min="1" value="1" required>
+            </div>
+            <div class="col-md-2 text-end">
+                <button type="button" class="btn btn-outline-danger btn-sm eliminar-item">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+        <div class="row mt-1">
+            <div class="col">
+                <small class="text-muted repuesto-info"></small>
+            </div>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let itemCount = 0;
+let categoriasCache = [];
+let allRepuestosCache = [];
+
+// Cargar categorías al inicio
+$.ajax({
+    url: '/categorias/api/lista',
+    success: function(data) { categoriasCache = data; }
+});
+
+// Cargar todos los repuestos al inicio
+$.ajax({
+    url: '/api/repuestos/buscar?q=',
+    success: function(data) { allRepuestosCache = data; }
+});
+
+// Manejar cambio de cliente → cargar vehículos
+$('#cliente_id').on('change', function() {
+    const clienteId = $(this).val();
+    const vehiculoSelect = $('#vehiculo_id');
+    vehiculoSelect.prop('disabled', true).html('<option value="">Cargando...</option>');
+    if (!clienteId) {
+        vehiculoSelect.html('<option value="">Primero seleccione un cliente</option>');
+        return;
+    }
+    $.ajax({
+        url: '/api/vehiculos-cliente/' + clienteId,
+        success: function(vehiculos) {
+            vehiculoSelect.html('<option value="">Seleccione vehículo...</option>');
+            vehiculos.forEach(function(v) {
+                vehiculoSelect.append('<option value="' + v.placa + '">' + v.placa + ' - ' + v.marca + ' ' + v.modelo + (v.anio ? ' ' + v.anio : '') + '</option>');
+            });
+            vehiculoSelect.prop('disabled', false);
+        },
+        error: function() {
+            vehiculoSelect.html('<option value="">Error cargando vehículos</option>');
+        }
+    });
+});
+
+// Agregar item
+$('#agregar-item').on('click', function() {
+    const tmpl = document.getElementById('item-template');
+    const clone = tmpl.content.cloneNode(true);
+    const div = clone.querySelector('.item-row');
+    div.dataset.index = itemCount;
+    itemCount++;
+
+    // Rellenar categorías
+    const catSelect = div.querySelector('.categoria-select');
+    categoriasCache.forEach(function(c) {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.nombre;
+        catSelect.appendChild(opt);
+    });
+
+    // Rellenar repuestos (todos)
+    cargarRepuestosEnSelect(div.querySelector('.repuesto-select'), allRepuestosCache);
+
+    $('#items-container').append(div);
+    $('#no-items-msg').hide();
+    bindItemEvents(div);
+});
+
+function cargarRepuestosEnSelect(sel, repuestos) {
+    $(sel).html('<option value="">Seleccione repuesto...</option>');
+    repuestos.forEach(function(r) {
+        const disponible = r.cantidad_actual - (r.cantidad_reservada || 0);
+        $(sel).append('<option value="' + r.id + '" data-precio="' + r.precio_venta + '" data-stock="' + disponible + '">' +
+            r.codigo + ' - ' + r.nombre + ' (Stock: ' + disponible + ')</option>');
+    });
+}
+
+function bindItemEvents(div) {
+    // Cambio de categoría → filtrar repuestos
+    $(div).find('.categoria-select').on('change', function() {
+        const catId = $(this).val();
+        const repuestoSel = $(div).find('.repuesto-select');
+        if (!catId) {
+            cargarRepuestosEnSelect(repuestoSel[0], allRepuestosCache);
+            return;
+        }
+        $.ajax({
+            url: '/api/repuestos/por-categoria/' + catId,
+            success: function(data) { cargarRepuestosEnSelect(repuestoSel[0], data); }
+        });
+    });
+
+    // Cambio de repuesto → mostrar info
+    $(div).find('.repuesto-select').on('change', function() {
+        const opt = $(this).find('option:selected');
+        const stock = opt.data('stock');
+        const precio = opt.data('precio');
+        if (opt.val()) {
+            $(div).find('.repuesto-info').text('Precio: $' + formatCOP(precio) + ' | Stock disponible: ' + stock);
+            $(div).find('input[name="cantidad[]"]').attr('max', stock);
+        } else {
+            $(div).find('.repuesto-info').text('');
+        }
+    });
+
+    // Eliminar item
+    $(div).find('.eliminar-item').on('click', function() {
+        $(div).remove();
+        if ($('#items-container .item-row').length === 0) {
+            $('#no-items-msg').show();
+        }
+    });
+}
+
+// Validar antes de enviar
+$('#solicitud-form').on('submit', function(e) {
+    if ($('#items-container .item-row').length === 0) {
+        e.preventDefault();
+        alert('Debe agregar al menos un repuesto a la solicitud.');
+        return false;
+    }
+});
+
+function formatCOP(val) {
+    return new Intl.NumberFormat('es-CO').format(val || 0);
+}
+</script>
+{% endblock %}

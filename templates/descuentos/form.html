@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if descuento else 'Nuevo' }} Código de Descuento{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="bi bi-tag-fill text-success"></i> {{ 'Editar' if descuento else 'Nuevo' }} Código de Descuento</h1>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control text-uppercase fw-bold"
+                                   name="codigo" value="{{ descuento.codigo if descuento else '' }}"
+                                   maxlength="20" required placeholder="Ej: DESC10, PROMO20, FIDELIDAD"
+                                   {% if descuento %}readonly{% endif %}>
+                            {% if not descuento %}
+                            <small class="text-muted">Se convertirá a mayúsculas. No se podrá cambiar después.</small>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Descripción <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control"
+                                   name="descripcion" value="{{ descuento.descripcion if descuento else '' }}"
+                                   maxlength="200" required placeholder="Ej: Descuento del 10% para clientes frecuentes">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tipo <span class="text-danger">*</span></label>
+                                    <select class="form-select" name="tipo" id="tipo" required>
+                                        <option value="PORCENTAJE" {% if not descuento or descuento.tipo == 'PORCENTAJE' %}selected{% endif %}>
+                                            % Porcentaje
+                                        </option>
+                                        <option value="FIJO" {% if descuento and descuento.tipo == 'FIJO' %}selected{% endif %}>
+                                            $ Valor fijo
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Valor <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text" id="unidad-label">%</span>
+                                        <input type="number" class="form-control"
+                                               name="valor" value="{{ descuento.valor if descuento else '' }}"
+                                               min="0" step="0.01" required placeholder="Ej: 10">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('lista_descuentos') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-save"></i> Guardar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$('#tipo').on('change', function() {
+    $('#unidad-label').text($(this).val() === 'PORCENTAJE' ? '%' : '$');
+}).trigger('change');
+</script>
+{% endblock %}

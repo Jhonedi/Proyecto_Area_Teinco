@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if usuario else 'Nuevo' }} Usuario - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="bi bi-person-plus"></i> {{ 'Editar' if usuario else 'Nuevo' }} Usuario</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('lista_usuarios') }}">Usuarios</a></li>
+                    <li class="breadcrumb-item active">{{ 'Editar' if usuario else 'Nuevo' }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="numero_documento" class="form-label">Número de Documento <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="numero_documento" name="numero_documento"
+                                   value="{{ usuario.numero_documento if usuario else '' }}"
+                                   required {% if usuario %}readonly{% endif %}
+                                   maxlength="20" placeholder="Ej: 1234567890">
+                            <small class="form-text text-muted">
+                                {% if usuario %}
+                                    El número de documento es la clave primaria y no se puede modificar.
+                                {% else %}
+                                    Cédula, NIT u otro documento de identidad. No se podrá cambiar después de crear la cuenta.
+                                {% endif %}
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Nombre de Usuario <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="username" name="username"
+                                   value="{{ usuario.username if usuario else '' }}"
+                                   required {{ 'readonly' if usuario else '' }}>
+                            <small class="form-text text-muted">El nombre de usuario no se puede cambiar después de crear la cuenta</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Contraseña {% if not usuario %}<span class="text-danger">*</span>{% endif %}</label>
+                            <input type="password" class="form-control" id="password" name="password" {% if not usuario %}required{% endif %} minlength="6">
+                            <small class="form-text text-muted">{% if usuario %}Dejar en blanco para mantener la contraseña actual. {% endif %}Mínimo 6 caracteres</small>
+                        </div>
+                        
+                        <div class="mb-3" id="password-confirm-group">
+                            <label for="password_confirm" class="form-label">Confirmar Contraseña {% if not usuario %}<span class="text-danger">*</span>{% endif %}</label>
+                            <input type="password" class="form-control" id="password_confirm" name="password_confirm" {% if not usuario %}required{% endif %} minlength="6">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="nombre_completo" class="form-label">Nombre Completo <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nombre_completo" name="nombre_completo" 
+                                   value="{{ usuario.nombre_completo if usuario else '' }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ usuario.email if usuario else '' }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="rol_id" class="form-label">Rol <span class="text-danger">*</span></label>
+                            <select class="form-select" id="rol_id" name="rol_id" required>
+                                <option value="">Seleccione un rol...</option>
+                                {% for rol in roles %}
+                                <option value="{{ rol.id }}" 
+                                        {% if usuario and usuario.rol_id == rol.id %}selected{% endif %}>
+                                    {{ rol.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('lista_usuarios') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Guardar Usuario
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Mostrar/ocultar confirmación de contraseña en modo edición
+    {% if usuario %}
+    function toggleConfirm() {
+        if ($('#password').val().length > 0) {
+            $('#password-confirm-group').show();
+            $('#password_confirm').prop('required', true);
+        } else {
+            $('#password-confirm-group').hide();
+            $('#password_confirm').prop('required', false);
+        }
+    }
+    $('#password').on('input', toggleConfirm);
+    toggleConfirm();
+    {% endif %}
+    
+    // Validar que las contraseñas coincidan
+    $('form').submit(function(e) {
+        const password = $('#password').val();
+        const passwordConfirm = $('#password_confirm').val();
+        
+        if (password && password !== passwordConfirm) {
+            e.preventDefault();
+            alert('Las contraseñas no coinciden');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

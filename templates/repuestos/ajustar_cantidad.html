@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Ajustar Cantidad - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="bi bi-sliders"></i> Ajustar Cantidad de Inventario</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('lista_repuestos') }}">Repuestos</a></li>
+                    <li class="breadcrumb-item active">Ajustar Cantidad</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <!-- Información del Repuesto -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Información del Repuesto</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Código:</strong> {{ repuesto.codigo }}</p>
+                            <p><strong>Nombre:</strong> {{ repuesto.nombre }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Cantidad Actual:</strong> <span class="badge bg-primary fs-5">{{ repuesto.cantidad_actual }}</span></p>
+                            <p><strong>Cantidad Mínima:</strong> {{ repuesto.cantidad_minima }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Formulario de Ajuste -->
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Ajustar Cantidad</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Importante:</strong> Este ajuste modificará directamente la cantidad actual del repuesto 
+                        y quedará registrado en el historial de ajustes.
+                    </div>
+                    
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="nueva_cantidad" class="form-label">Nueva Cantidad <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-lg" id="nueva_cantidad" name="nueva_cantidad" 
+                                   value="{{ repuesto.cantidad_actual }}" min="0" required>
+                            <small class="form-text text-muted">Ingrese la cantidad correcta del inventario físico</small>
+                        </div>
+                        
+                        <div class="mb-3" id="diferencia-info" style="display: none;">
+                            <div class="alert alert-info">
+                                <strong>Diferencia:</strong> <span id="diferencia-texto"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="motivo" class="form-label">Motivo del Ajuste <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="motivo" name="motivo" rows="3" required 
+                                      placeholder="Ej: Conteo físico de inventario, corrección de error de registro, etc."></textarea>
+                            <small class="form-text text-muted">Explique el motivo del ajuste para el historial</small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('lista_repuestos') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-warning" onclick="return confirm('¿Está seguro de ajustar la cantidad de este repuesto?');">
+                                <i class="bi bi-save"></i> Confirmar Ajuste
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    const cantidadActual = {{ repuesto.cantidad_actual }};
+    
+    $('#nueva_cantidad').on('input', function() {
+        const nuevaCantidad = parseInt($(this).val()) || 0;
+        const diferencia = nuevaCantidad - cantidadActual;
+        
+        if (diferencia !== 0) {
+            let texto = '';
+            let clase = '';
+            
+            if (diferencia > 0) {
+                texto = `+${diferencia} unidades (Aumento)`;
+                clase = 'alert-success';
+            } else {
+                texto = `${diferencia} unidades (Disminución)`;
+                clase = 'alert-danger';
+            }
+            
+            $('#diferencia-texto').text(texto);
+            $('#diferencia-info .alert').removeClass('alert-info alert-success alert-danger').addClass(clase);
+            $('#diferencia-info').show();
+        } else {
+            $('#diferencia-info').hide();
+        }
+    });
+});
+</script>
+{% endblock %}

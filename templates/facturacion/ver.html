@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block title %}Factura {{ factura.numero_factura }}{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    .no-print { display: none !important; }
+    .card { box-shadow: none !important; border: 1px solid #dee2e6 !important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3 no-print">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('facturacion.lista_facturas') }}">Facturación</a></li>
+                    <li class="breadcrumb-item active">{{ factura.numero_factura }}</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="col-auto d-flex gap-2">
+            <a href="{{ url_for('facturacion.factura_pdf', id=factura.id) }}"
+               class="btn btn-outline-danger" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i> PDF
+            </a>
+            <button class="btn btn-outline-secondary" onclick="window.print()">
+                <i class="bi bi-printer"></i> Imprimir
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Encabezado factura -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center
+                    {% if factura.estado == 'PAGADA' %}bg-success text-white
+                    {% elif factura.estado == 'ANULADA' %}bg-danger text-white
+                    {% elif factura.estado == 'PENDIENTE' %}bg-warning
+                    {% else %}bg-secondary text-white{% endif %}">
+                    <h5 class="mb-0"><i class="bi bi-receipt"></i> {{ factura.numero_factura }}</h5>
+                    <span class="badge bg-white text-dark fs-6">{{ factura.estado }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">DATOS DEL CLIENTE</h6>
+                            <p class="mb-1"><strong>{{ factura.cliente_nombre }}</strong></p>
+                            <p class="mb-1">Doc: {{ factura.cliente_documento }}</p>
+                            {% if factura.cliente_telefono %}<p class="mb-1">Tel: {{ factura.cliente_telefono | formato_telefono }}</p>{% endif %}
+                            {% if factura.cliente_email %}<p class="mb-1">Email: {{ factura.cliente_email }}</p>{% endif %}
+                            {% if factura.cliente_direccion %}<p class="mb-1">Dir: {{ factura.cliente_direccion }}</p>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">DATOS DEL SERVICIO</h6>
+                            {% if factura.placa %}
+                            <p class="mb-1">Vehículo: <span class="badge bg-dark">{{ factura.placa }}</span> {{ factura.marca }} {{ factura.modelo }}</p>
+                            {% endif %}
+                            <p class="mb-1">Vendedor: {{ factura.vendedor_nombre }}</p>
+                            <p class="mb-1">Fecha: {{ factura.created_at.strftime('%d/%m/%Y %H:%M') if factura.created_at else '' }}</p>
+                            {% if factura.solicitud_id %}
+                            <p class="mb-1">
+                                Solicitud:
+                                <a href="{{ url_for('solicitudes.ver_solicitud', id=factura.solicitud_id) }}">
+                                    <code>{{ factura.numero_solicitud }}</code>
+                                </a>
+                            </p>
+                            {% endif %}
+                            {% if factura.metodo_pago %}
+                            <p class="mb-1">Método de pago: {{ factura.metodo_pago }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="bi bi-box-seam"></i> Detalle de Items</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Descripción</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th>Precio Unit.</th>
+                                    <th>Desc.</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for det in detalles %}
+                                <tr>
+                                    <td><code>{{ det.repuesto_codigo }}</code></td>
+                                    <td>{{ det.repuesto_nombre }}</td>
+                                    <td class="text-center">{{ det.cantidad }}</td>
+                                    <td>{{ det.precio_unitario|formato_cop_moneda }}</td>
+                                    <td>{% if det.descuento %}{{ det.descuento|formato_cop_moneda }}{% else %}-{% endif %}</td>
+                                    <td class="fw-bold">{{ det.subtotal|formato_cop_moneda }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="5" class="text-end fw-bold">Subtotal:</td>
+                                    <td class="fw-bold">{{ factura.subtotal|formato_cop_moneda }}</td>
+                                </tr>
+                                {% if factura.descuento %}
+                                <tr>
+                                    <td colspan="5" class="text-end text-danger">Descuento:</td>
+                                    <td class="text-danger">-{{ factura.descuento|formato_cop_moneda }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td colspan="5" class="text-end">IVA:</td>
+                                    <td>{{ factura.impuesto|formato_cop_moneda }}</td>
+                                </tr>
+                                <tr class="table-dark">
+                                    <td colspan="5" class="text-end fw-bold fs-5">TOTAL:</td>
+                                    <td class="fw-bold fs-5">{{ factura.total|formato_cop_moneda }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historial de pagos -->
+            {% if pagos %}
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="bi bi-cash-coin"></i> Historial de Pagos</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Monto</th>
+                                    <th>Método</th>
+                                    <th>Referencia</th>
+                                    <th>Recibido por</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pago in pagos %}
+                                <tr>
+                                    <td><small>{{ pago.fecha_pago.strftime('%d/%m/%Y %H:%M') if pago.fecha_pago else '' }}</small></td>
+                                    <td class="fw-bold text-success">{{ pago.monto|formato_cop_moneda }}</td>
+                                    <td>{{ pago.metodo_pago }}</td>
+                                    <td><small>{{ pago.referencia_pago or '-' }}</small></td>
+                                    <td><small>{{ pago.recibido_por_nombre or '-' }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="1" class="text-end fw-bold">Total pagado:</td>
+                                    <td class="fw-bold text-success">{{ total_pagado|formato_cop_moneda }}</td>
+                                    <td colspan="3"></td>
+                                </tr>
+                                {% if saldo_pendiente > 0 %}
+                                <tr>
+                                    <td class="text-end fw-bold text-danger">Saldo pendiente:</td>
+                                    <td class="fw-bold text-danger">{{ saldo_pendiente|formato_cop_moneda }}</td>
+                                    <td colspan="3"></td>
+                                </tr>
+                                {% endif %}
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if factura.motivo_anulacion %}
+            <div class="alert alert-danger">
+                <strong><i class="bi bi-x-circle"></i> Factura Anulada</strong><br>
+                Motivo: {{ factura.motivo_anulacion }}<br>
+                {% if factura.anulado_por_nombre %}Anulada por: {{ factura.anulado_por_nombre }}{% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Acciones -->
+        <div class="col-md-4 no-print">
+            {% if factura.estado == 'EN_ESPERA' %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('facturacion.confirmar_factura', id=factura.id) }}"
+                          onsubmit="return confirm('¿Confirmar factura?')">
+                        <button type="submit" class="btn btn-warning w-100 mb-2">
+                            <i class="bi bi-check-circle"></i> Confirmar Factura
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if factura.estado in ['EN_ESPERA', 'PENDIENTE'] %}
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="bi bi-cash-coin"></i> Registrar Pago</h6>
+                </div>
+                <div class="card-body">
+                    {% if saldo_pendiente > 0 %}
+                    <p class="text-danger fw-bold">Saldo: {{ saldo_pendiente|formato_cop_moneda }}</p>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('facturacion.registrar_pago', id=factura.id) }}">
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">Monto <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-sm" name="monto"
+                                   step="0.01" min="0.01" max="{{ saldo_pendiente }}" required
+                                   value="{{ saldo_pendiente }}">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">Método de pago</label>
+                            <select class="form-select form-select-sm" name="metodo_pago">
+                                {% for m in metodos_pago %}
+                                <option value="{{ m }}" {% if m == factura.metodo_pago %}selected{% endif %}>{{ m }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Referencia</label>
+                            <input type="text" class="form-control form-control-sm" name="referencia_pago"
+                                   placeholder="# transacción, cheque...">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Observaciones</label>
+                            <textarea class="form-control form-control-sm" name="observaciones" rows="2"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-cash-coin"></i> Registrar Pago
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if factura.estado != 'ANULADA' and permissions.can_manage_users %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <button class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#modalAnular">
+                        <i class="bi bi-x-circle"></i> Anular Factura
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+
+            <a href="{{ url_for('facturacion.lista_facturas') }}" class="btn btn-secondary w-100">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Anular -->
+<div class="modal fade" id="modalAnular" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('facturacion.anular_factura', id=factura.id) }}">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-x-circle"></i> Anular Factura</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% if factura.estado == 'PAGADA' %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Advertencia:</strong> Esta factura ya fue pagada. Al anularla, el inventario se revertirá (se devuelven las unidades descontadas).
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Motivo de anulación <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="motivo_anulacion" rows="3" required
+                                  placeholder="Explique el motivo de la anulación..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Confirmar Anulación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

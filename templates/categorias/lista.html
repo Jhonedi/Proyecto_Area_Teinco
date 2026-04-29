@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Categorías de Repuestos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h1><i class="bi bi-tags"></i> Categorías de Repuestos</h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('categorias.nueva') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Nueva Categoría
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th class="text-center">Repuestos</th>
+                            <th>Creado por</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cat in categorias %}
+                        <tr>
+                            <td class="fw-bold">{{ cat.nombre }}</td>
+                            <td><small class="text-muted">{{ cat.descripcion or '-' }}</small></td>
+                            <td class="text-center">
+                                <span class="badge bg-{{ 'primary' if cat.total_repuestos > 0 else 'secondary' }}">
+                                    {{ cat.total_repuestos }}
+                                </span>
+                            </td>
+                            <td><small>{{ cat.creado_por_nombre or '-' }}</small></td>
+                            <td><small>{{ cat.created_at.strftime('%d/%m/%Y') if cat.created_at else '' }}</small></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('categorias.editar', id=cat.id) }}" class="btn btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('categorias.eliminar', id=cat.id) }}" style="display:inline">
+                                        <button type="submit" class="btn btn-outline-danger"
+                                                {% if cat.total_repuestos > 0 %}disabled title="Tiene repuestos asociados"{% endif %}
+                                                {% if cat.total_repuestos == 0 %}onclick="return confirm('¿Eliminar categoría {{ cat.nombre }}?')"{% endif %}>
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="bi bi-tags fs-3 d-block mb-2"></i>
+                                No hay categorías registradas
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

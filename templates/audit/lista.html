@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Auditoría del Sistema{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h1><i class="bi bi-shield-check"></i> Registro de Auditoría</h1>
+            <p class="text-muted">Total de registros: <strong>{{ total }}</strong></p>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <form method="GET" class="row g-2">
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" name="tipo_cambio">
+                        <option value="">Tipo de cambio</option>
+                        {% for t in tipos_cambio %}
+                        <option value="{{ t }}" {% if t == tipo_cambio %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" name="accion">
+                        <option value="">Acción</option>
+                        {% for a in acciones %}
+                        <option value="{{ a }}" {% if a == accion %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" name="usuario_id">
+                        <option value="">Usuario</option>
+                        {% for u in usuarios %}
+                        <option value="{{ u.id }}" {% if u.id == usuario_id %}selected{% endif %}>{{ u.nombre_completo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control form-control-sm" name="fecha_desde" value="{{ fecha_desde }}">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control form-control-sm" name="fecha_hasta" value="{{ fecha_hasta }}">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control form-control-sm" name="search" placeholder="Buscar tabla..." value="{{ search }}">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary btn-sm me-2"><i class="bi bi-funnel"></i> Filtrar</button>
+                    <a href="{{ url_for('audit.lista_audit') }}" class="btn btn-secondary btn-sm"><i class="bi bi-x"></i> Limpiar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Tipo</th>
+                            <th>Tabla</th>
+                            <th>Registro</th>
+                            <th>IP</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reg in registros %}
+                        <tr>
+                            <td><small>{{ reg.created_at.strftime('%d/%m/%Y %H:%M:%S') if reg.created_at else '' }}</small></td>
+                            <td>
+                                <a href="{{ url_for('audit.acciones_usuario', usuario_id=reg.usuario_id) }}">
+                                    <small>{{ reg.usuario_nombre }}</small>
+                                </a>
+                            </td>
+                            <td>
+                                {% set acc_colors = {'CREAR': 'success', 'ACTUALIZAR': 'info', 'ELIMINAR': 'danger', 'APROBAR': 'primary', 'RECHAZAR': 'warning', 'LOGIN': 'secondary', 'LOGOUT': 'secondary', 'AJUSTE': 'warning', 'ANULAR': 'danger', 'FACTURAR': 'primary'} %}
+                                <span class="badge bg-{{ acc_colors.get(reg.accion, 'secondary') }}">{{ reg.accion }}</span>
+                            </td>
+                            <td><small class="badge bg-light text-dark border">{{ reg.tipo_cambio }}</small></td>
+                            <td><code class="small">{{ reg.tabla_afectada }}</code></td>
+                            <td><small>#{{ reg.registro_id }}</small></td>
+                            <td><small class="text-muted">{{ reg.ip_address or '-' }}</small></td>
+                            <td>
+                                <a href="{{ url_for('audit.detalle_audit', id=reg.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">No hay registros de auditoría</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if total_pages > 1 %}
+            <div class="p-3">
+                <nav>
+                    <ul class="pagination justify-content-center mb-0">
+                        {% for p in range(1, total_pages+1) %}
+                        <li class="page-item {% if p == page %}active{% endif %}">
+                            <a class="page-link" href="?page={{ p }}{% if tipo_cambio %}&tipo_cambio={{ tipo_cambio }}{% endif %}{% if accion %}&accion={{ accion }}{% endif %}{% if usuario_id %}&usuario_id={{ usuario_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">{{ p }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

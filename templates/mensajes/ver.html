@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Mensaje - {{ mensaje.asunto }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('mensajes.bandeja_entrada') }}">Mensajes</a></li>
+                    <li class="breadcrumb-item active">{{ mensaje.asunto }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h6 class="mb-0">{{ mensaje.asunto }}</h6>
+                        {% if mensaje.leido %}
+                        <span class="badge bg-light text-dark"><i class="bi bi-check2-all"></i> Leído</span>
+                        {% else %}
+                        <span class="badge bg-info"><i class="bi bi-envelope-fill"></i> No leído</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-header bg-light">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">De:</small>
+                            <strong> {{ mensaje.remitente_nombre }}</strong>
+                            <small class="text-muted">({{ mensaje.remitente_username }})</small>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted">Para:</small>
+                            <strong> {{ mensaje.destinatario_nombre }}</strong>
+                            <small class="text-muted">({{ mensaje.destinatario_username }})</small>
+                        </div>
+                        <div class="col-12 mt-1">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar"></i>
+                                {{ mensaje.created_at.strftime('%d/%m/%Y %H:%M') if mensaje.created_at else '' }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div style="white-space: pre-wrap; line-height: 1.6;">{{ mensaje.mensaje }}</div>
+                </div>
+            </div>
+
+            <!-- Objetos vinculados -->
+            {% if alerta or solicitud or factura %}
+            <div class="card mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="bi bi-link-45deg"></i> Vinculado a</h6>
+                </div>
+                <div class="card-body">
+                    {% if alerta %}
+                    <div class="mb-2">
+                        <i class="bi bi-exclamation-triangle text-warning"></i>
+                        <strong>Alerta:</strong>
+                        <a href="{{ url_for('alertas.ver_alerta', id=alerta.id) }}">
+                            #{{ alerta.id }} - {{ alerta.tipo_alerta }}
+                        </a>
+                        <span class="badge bg-{% if alerta.estado == 'NUEVA' %}danger{% elif alerta.estado == 'EN_PROCESO' %}warning{% elif alerta.estado == 'RESUELTA' %}success{% else %}secondary{% endif %} ms-1">{{ alerta.estado }}</span>
+                    </div>
+                    {% endif %}
+                    {% if solicitud %}
+                    <div class="mb-2">
+                        <i class="bi bi-file-earmark-text text-primary"></i>
+                        <strong>Solicitud:</strong>
+                        <a href="{{ url_for('solicitudes.ver_solicitud', id=solicitud.id) }}">
+                            {{ solicitud.numero_solicitud }}
+                        </a>
+                        <span class="badge bg-secondary ms-1">{{ solicitud.estado }}</span>
+                    </div>
+                    {% endif %}
+                    {% if factura %}
+                    <div class="mb-2">
+                        <i class="bi bi-receipt text-success"></i>
+                        <strong>Factura:</strong>
+                        <a href="{{ url_for('facturacion.ver_factura', id=factura.id) }}">
+                            {{ factura.numero_factura }}
+                        </a>
+                        <span class="badge bg-secondary ms-1">{{ factura.estado }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Acciones -->
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('mensajes.nuevo', destinatario_id=mensaje.remitente_id) }}" class="btn btn-primary">
+                    <i class="bi bi-reply"></i> Responder
+                </a>
+                <a href="{{ url_for('mensajes.bandeja_entrada') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

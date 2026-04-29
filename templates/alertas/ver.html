@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block title %}Alerta #{{ alerta.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('alertas.lista_alertas') }}">Alertas</a></li>
+                    <li class="breadcrumb-item active">Alerta #{{ alerta.id }}</li>
+                </ol>
+            </nav>
+            <h1><i class="bi bi-exclamation-triangle"></i> Alerta de Inventario</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Detalle de la Alerta</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-5">Tipo:</dt>
+                                <dd class="col-7">{{ alerta.tipo_alerta }}</dd>
+                                <dt class="col-5">Prioridad:</dt>
+                                <dd class="col-7">
+                                    {% set prio_colors = {'CRITICA': 'danger', 'ALTA': 'warning', 'MEDIA': 'info', 'BAJA': 'secondary'} %}
+                                    <span class="badge bg-{{ prio_colors.get(alerta.nivel_prioridad, 'secondary') }} fs-6">{{ alerta.nivel_prioridad }}</span>
+                                </dd>
+                                <dt class="col-5">Estado:</dt>
+                                <dd class="col-7">
+                                    {% set est_colors = {'NUEVA': 'danger', 'EN_PROCESO': 'warning', 'RESUELTA': 'success', 'ARCHIVADA': 'secondary'} %}
+                                    <span class="badge bg-{{ est_colors.get(alerta.estado, 'secondary') }} fs-6">{{ alerta.estado }}</span>
+                                </dd>
+                                <dt class="col-5">Creada:</dt>
+                                <dd class="col-7"><small>{{ alerta.created_at.strftime('%d/%m/%Y %H:%M') if alerta.created_at else '' }}</small></dd>
+                                {% if alerta.atendida_por_nombre %}
+                                <dt class="col-5">Atendida por:</dt>
+                                <dd class="col-7">{{ alerta.atendida_por_nombre }}</dd>
+                                {% endif %}
+                                {% if alerta.resuelta_por_nombre %}
+                                <dt class="col-5">Resuelta por:</dt>
+                                <dd class="col-7">{{ alerta.resuelta_por_nombre }}</dd>
+                                {% endif %}
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Mensaje:</h6>
+                            <div class="alert alert-warning">{{ alerta.mensaje }}</div>
+                            {% if alerta.notas_resolucion %}
+                            <h6>Notas de resolución:</h6>
+                            <div class="alert alert-success">{{ alerta.notas_resolucion }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if alerta.repuesto_nombre %}
+                    <hr>
+                    <h6><i class="bi bi-box-seam"></i> Repuesto Afectado</h6>
+                    <div class="row">
+                        <div class="col-md-3"><strong>Código:</strong><br><code>{{ alerta.repuesto_codigo }}</code></div>
+                        <div class="col-md-3"><strong>Nombre:</strong><br>{{ alerta.repuesto_nombre }}</div>
+                        <div class="col-md-3"><strong>Stock actual:</strong><br>
+                            <span class="badge bg-{% if alerta.cantidad_actual == 0 %}danger{% elif alerta.cantidad_actual <= alerta.cantidad_minima %}warning{% else %}success{% endif %} fs-6">
+                                {{ alerta.cantidad_actual }}
+                            </span>
+                        </div>
+                        <div class="col-md-3"><strong>Stock mínimo:</strong><br>{{ alerta.cantidad_minima }}</div>
+                        {% if alerta.ubicacion_fisica %}
+                        <div class="col-md-6 mt-2"><strong>Ubicación:</strong> {{ alerta.ubicacion_fisica }}</div>
+                        {% endif %}
+                        {% if alerta.precio_venta %}
+                        <div class="col-md-6 mt-2"><strong>Precio venta:</strong> {{ alerta.precio_venta|formato_cop_moneda }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% if datos_adicionales %}
+                    <hr>
+                    <h6><i class="bi bi-card-list"></i> Datos Adicionales</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tbody>
+                                {% for k, v in datos_adicionales.items() %}
+                                <tr>
+                                    <td class="fw-bold text-capitalize" style="width:40%">{{ k.replace('_', ' ') }}</td>
+                                    <td>{{ v }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if historial %}
+            <div class="card mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="bi bi-clock-history"></i> Historial de Cambios</h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for h in historial %}
+                        <div class="timeline-item d-flex mb-3">
+                            <div class="me-3 text-center" style="min-width:40px">
+                                <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center text-white" style="width:32px;height:32px;font-size:12px">
+                                    <i class="bi bi-clock"></i>
+                                </div>
+                                <div class="border-start ms-3" style="height:calc(100% - 32px);min-height:20px"></div>
+                            </div>
+                            <div class="flex-grow-1 pb-3">
+                                <div class="d-flex justify-content-between">
+                                    <strong>{{ h.accion }}</strong>
+                                    <small class="text-muted">{{ h.created_at.strftime('%d/%m/%Y %H:%M') if h.created_at else '' }}</small>
+                                </div>
+                                <small>Por: <strong>{{ h.usuario_nombre }}</strong></small>
+                                {% if h.estado_anterior and h.estado_nuevo %}
+                                <br><small>
+                                    Estado:
+                                    <span class="badge bg-secondary">{{ h.estado_anterior }}</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                    <span class="badge bg-primary">{{ h.estado_nuevo }}</span>
+                                </small>
+                                {% endif %}
+                                {% if h.observaciones %}
+                                <br><small class="text-muted fst-italic">{{ h.observaciones }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-4">
+            {% if alerta.estado in ['NUEVA', 'EN_PROCESO', 'RESUELTA'] %}
+            <div class="card mb-3">
+                <div class="card-header bg-warning">
+                    <h6 class="mb-0"><i class="bi bi-lightning"></i> Acciones</h6>
+                </div>
+                <div class="card-body">
+                    {% if notificacion is none or not notificacion.leida %}
+                    <form method="POST" action="{{ url_for('alertas.marcar_leida', id=alerta.id) }}" class="mb-2">
+                        <button type="submit" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-check2"></i> Marcar como Leída
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if can_resolve %}
+                        {% if alerta.estado == 'NUEVA' %}
+                        <button class="btn btn-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#modalAtender">
+                            <i class="bi bi-hand-index"></i> Atender / Poner en Proceso
+                        </button>
+                        {% endif %}
+
+                        {% if alerta.estado in ['NUEVA', 'EN_PROCESO'] %}
+                        <button class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#modalResolver">
+                            <i class="bi bi-check-circle"></i> Marcar como Resuelta
+                        </button>
+                        {% endif %}
+
+                        {% if alerta.estado == 'RESUELTA' %}
+                        <form method="POST" action="{{ url_for('alertas.archivar_alerta', id=alerta.id) }}"
+                              onsubmit="return confirm('¿Archivar esta alerta?')">
+                            <button type="submit" class="btn btn-secondary w-100">
+                                <i class="bi bi-archive"></i> Archivar
+                            </button>
+                        </form>
+                        {% endif %}
+                    {% else %}
+                    <div class="alert alert-info mb-0 small">
+                        <i class="bi bi-info-circle"></i> Solo administradores pueden resolver alertas.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <a href="{{ url_for('mensajes.nuevo', alerta_id=alerta.id) }}" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="bi bi-envelope-plus"></i> Enviar Mensaje
+                    </a>
+                    <a href="{{ url_for('alertas.lista_alertas') }}" class="btn btn-secondary w-100">
+                        <i class="bi bi-arrow-left"></i> Volver a Alertas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAtender" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('alertas.atender_alerta', id=alerta.id) }}">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">Atender Alerta</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label fw-bold">Observaciones / Acción tomada</label>
+                    <textarea class="form-control" name="observaciones" rows="3" placeholder="Describa las acciones que está tomando..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Marcar en Proceso</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalResolver" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('alertas.resolver_alerta', id=alerta.id) }}">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Resolver Alerta</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label fw-bold">Notas de resolución <span class="text-danger">*</span></label>
+                    <textarea class="form-control" name="observaciones" rows="3" required
+                              placeholder="¿Cómo se resolvió? ¿Qué acción se tomó?"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Marcar Resuelta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="bi bi-speedometer2"></i> Dashboard</h1>
+            <p class="text-muted">Bienvenido, {{ current_user.nombre_completo }}</p>
+        </div>
+    </div>
+
+    <!-- Fila 1 de estadísticas -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <a href="{{ url_for('lista_repuestos') }}" class="text-decoration-none">
+                <div class="card bg-primary text-white dashboard-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Total Repuestos</h6>
+                                <h2 class="mb-0">{{ stats.total_repuestos }}</h2>
+                            </div>
+                            <i class="bi bi-box-seam" style="font-size: 3rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-3">
+            <a href="{{ url_for('lista_repuestos') }}" class="text-decoration-none">
+                <div class="card bg-success text-white dashboard-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Valor Inventario</h6>
+                                <h3 class="mb-0">{{ stats.valor_inventario|formato_cop_moneda }}</h3>
+                            </div>
+                            <i class="bi bi-currency-dollar" style="font-size: 3rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-3">
+            <a href="{{ url_for('alertas.lista_alertas') }}" class="text-decoration-none">
+                <div class="card bg-warning text-dark dashboard-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Alertas Activas</h6>
+                                <h2 class="mb-0">{{ stats.alertas_activas }}</h2>
+                            </div>
+                            <i class="bi bi-exclamation-triangle" style="font-size: 3rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-3">
+            <a href="{{ url_for('lista_movimientos') }}" class="text-decoration-none">
+                <div class="card bg-info text-white dashboard-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Movimientos Hoy</h6>
+                                <h2 class="mb-0">{{ stats.movimientos_hoy }}</h2>
+                            </div>
+                            <i class="bi bi-arrow-left-right" style="font-size: 3rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Fila 2: módulos nuevos -->
+    <div class="row mb-4">
+        {% if permissions.can_create_requests or permissions.can_approve_requests %}
+        <div class="col-md-4">
+            <a href="{{ url_for('solicitudes.lista_solicitudes', estado='PENDIENTE') }}" class="text-decoration-none">
+                <div class="card bg-secondary text-white dashboard-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Solicitudes Pendientes</h6>
+                                <h2 class="mb-0">{{ stats.solicitudes_pendientes or 0 }}</h2>
+                            </div>
+                            <i class="bi bi-file-earmark-text" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+
+        {% if permissions.can_create_sales or permissions.can_confirm_sales %}
+        <div class="col-md-4">
+            <a href="{{ url_for('facturacion.lista_facturas', estado='PENDIENTE') }}" class="text-decoration-none">
+                <div class="card bg-dark text-white dashboard-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Facturas Pendientes</h6>
+                                <h2 class="mb-0">{{ stats.facturas_pendientes or 0 }}</h2>
+                            </div>
+                            <i class="bi bi-receipt" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+
+        {% if permissions.can_approve_adjustments %}
+        <div class="col-md-4">
+            <a href="{{ url_for('ajustes_pendientes') }}" class="text-decoration-none">
+                <div class="card {% if stats.ajustes_pendientes %}bg-danger{% else %}bg-secondary{% endif %} text-white dashboard-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Ajustes Pendientes</h6>
+                                <h2 class="mb-0">{{ stats.ajustes_pendientes or 0 }}</h2>
+                            </div>
+                            <i class="bi bi-sliders" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <!-- Repuestos con Stock Bajo -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-octagon"></i> Repuestos con Stock Bajo</h5>
+                </div>
+                <div class="card-body">
+                    {% if repuestos_bajo_stock %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Nombre</th>
+                                    <th>Actual</th>
+                                    <th>Mínimo</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for repuesto in repuestos_bajo_stock %}
+                                <tr onclick="loadRepuestosDetalle('{{ repuesto.codigo }}')" style="cursor:pointer" title="Clic para ver detalle">
+                                    <td><code>{{ repuesto.codigo }}</code></td>
+                                    <td>{{ repuesto.nombre }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{{ 'danger' if repuesto.cantidad_actual == 0 else 'warning' }}">
+                                            {{ repuesto.cantidad_actual }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">{{ repuesto.cantidad_minima }}</td>
+                                    <td>
+                                        {% if repuesto.cantidad_actual == 0 %}
+                                            <span class="badge bg-danger">AGOTADO</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">BAJO</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success mb-0">
+                        <i class="bi bi-check-circle"></i> No hay repuestos con stock bajo
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Últimos Movimientos -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Últimos Movimientos</h5>
+                </div>
+                <div class="card-body">
+                    {% if ultimos_movimientos %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Repuesto</th>
+                                    <th>Tipo</th>
+                                    <th>Cantidad</th>
+                                    <th>Usuario</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mov in ultimos_movimientos %}
+                                <tr data-href="{{ url_for('lista_movimientos') }}" title="Clic para ver lista de movimientos">
+                                    <td>{{ mov.created_at.strftime('%d/%m %H:%M') if mov.created_at else '' }}</td>
+                                    <td><small>{{ mov.repuesto_nombre }}</small></td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if mov.tipo == 'ENTRADA' else 'danger' }}">
+                                            {% if mov.tipo == 'ENTRADA' %}<i class="bi bi-arrow-down"></i>
+                                            {% else %}<i class="bi bi-arrow-up"></i>{% endif %}
+                                            {{ mov.tipo_movimiento }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">{{ mov.cantidad }}</td>
+                                    <td><small>{{ mov.usuario }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i> No hay movimientos recientes
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

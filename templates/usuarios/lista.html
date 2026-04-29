@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Usuarios - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1><i class="bi bi-people"></i> Usuarios</h1>
+            <p class="text-muted">Gestión de usuarios del sistema</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('nuevo_usuario') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Nuevo Usuario
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if usuarios %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Usuario</th>
+                                    <th>Nombre Completo</th>
+                                    <th>Email</th>
+                                    <th>Rol</th>
+                                    <th>Estado</th>
+                                    <th>Fecha Registro</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for usuario in usuarios %}
+                                <tr>
+                                    <td>{{ usuario.numero_documento }}</td>
+                                    <td><strong>{{ usuario.username }}</strong></td>
+                                    <td>{{ usuario.nombre_completo }}</td>
+                                    <td>{{ usuario.email or '-' }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'danger' if usuario.rol_nombre == 'ADMINISTRADOR' else 'primary' if usuario.rol_nombre == 'ALMACENISTA' else 'info' if usuario.rol_nombre == 'VENDEDOR' else 'secondary' }}">
+                                            {{ usuario.rol_nombre }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if usuario.activo %}
+                                            <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ usuario.created_at.strftime('%d/%m/%Y') if usuario.created_at else '-' }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('editar_usuario', numero_documento=usuario.numero_documento) }}" class="btn btn-outline-primary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('toggle_estado_usuario', numero_documento=usuario.numero_documento) }}" style="display: inline;" onsubmit="return confirm('¿Está seguro de cambiar el estado de este usuario?');">
+                                                {% if usuario.activo %}
+                                                <button type="submit" class="btn btn-outline-danger" title="Desactivar">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </button>
+                                                {% else %}
+                                                <button type="submit" class="btn btn-outline-success" title="Activar">
+                                                    <i class="bi bi-check-circle"></i>
+                                                </button>
+                                                {% endif %}
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i> No hay usuarios registrados
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

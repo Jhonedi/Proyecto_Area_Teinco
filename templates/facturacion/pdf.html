@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: letter;
+    margin: 1.8cm 1.5cm 2cm 1.5cm;
+  }
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 9pt;
+    color: #222;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* ── Encabezado ── */
+  .hdr { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+  .hdr td { vertical-align: top; }
+  .empresa-nombre { font-size: 14pt; font-weight: bold; color: #0d6efd; }
+  .empresa-sub { font-size: 8pt; color: #555; line-height: 1.6; }
+  .factura-num { font-size: 13pt; font-weight: bold; text-align: right; }
+  .factura-meta { font-size: 8pt; color: #555; text-align: right; line-height: 1.6; }
+
+  /* ── Divisor ── */
+  .div-line { width: 100%; border: none; border-top: 2px solid #0d6efd; margin: 6px 0 10px 0; }
+  .div-thin { width: 100%; border: none; border-top: 1px solid #dee2e6; margin: 6px 0; }
+
+  /* ── Bloque estado ── */
+  .estado-box {
+    padding: 2px 7px;
+    font-size: 8pt;
+    font-weight: bold;
+    color: #fff;
+  }
+  .est-PAGADA    { background-color: #198754; }
+  .est-PENDIENTE { background-color: #ffc107; color: #000; }
+  .est-ANULADA   { background-color: #dc3545; }
+  .est-EN_ESPERA { background-color: #6c757d; }
+
+  /* ── Secciones info ── */
+  .info-outer { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+  .info-outer td { vertical-align: top; width: 50%; padding-right: 12px; }
+  .info-outer td:last-child { padding-right: 0; }
+  .section-title {
+    font-size: 7.5pt;
+    font-weight: bold;
+    color: #0d6efd;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 2px;
+    margin-bottom: 5px;
+  }
+  .info-row { margin-bottom: 3px; font-size: 8.5pt; }
+  .lbl { color: #666; }
+  .mono { font-family: "Courier New", monospace; font-size: 8pt; background: #f0f0f0; padding: 0 2px; }
+
+  /* ── Tabla de items ── */
+  .items { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 8.5pt; }
+  .items thead tr { background-color: #0d6efd; color: #fff; }
+  .items thead th { padding: 5px 5px; text-align: left; font-weight: bold; }
+  .items thead th.r { text-align: right; }
+  .items tbody tr.alt { background-color: #f8f9fa; }
+  .items tbody td { padding: 4px 5px; border-bottom: 1px solid #e9ecef; }
+  .items tbody td.r { text-align: right; }
+
+  /* Totales */
+  .totals { width: 40%; border-collapse: collapse; float: right; margin-bottom: 10px; }
+  .totals td { padding: 3px 5px; font-size: 8.5pt; }
+  .totals td.r { text-align: right; font-weight: bold; }
+  .totals tr.desc td { color: #dc3545; }
+  .totals tr.grand { background-color: #212529; color: #fff; font-size: 10pt; }
+  .totals tr.grand td { font-weight: bold; color: #fff; }
+  .totals tr.grand td.r { color: #fff; }
+
+  /* ── Anulación ── */
+  .anulacion {
+    border: 2px solid #dc3545;
+    padding: 6px 10px;
+    margin: 8px 0;
+    color: #dc3545;
+    font-size: 8.5pt;
+  }
+
+  /* ── Pie ── */
+  .footer {
+    margin-top: 16px;
+    border-top: 1px solid #dee2e6;
+    padding-top: 6px;
+    font-size: 7.5pt;
+    color: #888;
+    text-align: center;
+  }
+
+  .clearfix { clear: both; }
+</style>
+</head>
+<body>
+
+<!-- ══ ENCABEZADO ══ -->
+<table class="hdr">
+  <tr>
+    <td style="width:60%">
+      <div class="empresa-nombre">{{ empresa.get('EMPRESA_NOMBRE', 'Taller Automotriz') }}</div>
+      <div class="empresa-sub">
+        {% if empresa.get('EMPRESA_NIT') %}NIT: {{ empresa['EMPRESA_NIT'] }}<br>{% endif %}
+        {% if empresa.get('EMPRESA_REGIMEN') %}Régimen: {{ empresa['EMPRESA_REGIMEN'] }}<br>{% endif %}
+        {% if empresa.get('EMPRESA_DIRECCION') %}{{ empresa['EMPRESA_DIRECCION'] }}{% if empresa.get('EMPRESA_CIUDAD') %}, {{ empresa['EMPRESA_CIUDAD'] }}{% endif %}<br>{% endif %}
+        {% if empresa.get('EMPRESA_TELEFONO') %}Tel: {{ empresa['EMPRESA_TELEFONO'] }}{% if empresa.get('EMPRESA_EMAIL') %} | {{ empresa['EMPRESA_EMAIL'] }}{% endif %}{% elif empresa.get('EMPRESA_EMAIL') %}{{ empresa['EMPRESA_EMAIL'] }}{% endif %}
+      </div>
+    </td>
+    <td style="width:40%">
+      <div class="factura-num">{{ factura.numero_factura }}</div>
+      <div class="factura-meta">
+        {% set ec = 'est-' + factura.estado %}
+        <span class="estado-box {{ ec }}">{{ factura.estado }}</span><br>
+        Fecha: {{ factura.created_at.strftime('%d/%m/%Y %H:%M') if factura.created_at else '' }}<br>
+        Método de pago: {{ factura.metodo_pago or '-' }}
+      </div>
+    </td>
+  </tr>
+</table>
+
+<hr class="div-line">
+
+<!-- ══ DATOS CLIENTE / SERVICIO ══ -->
+<table class="info-outer">
+  <tr>
+    <td>
+      <div class="section-title">Datos del Cliente</div>
+      <div class="info-row"><span class="lbl">Nombre:</span> <strong>{{ factura.cliente_nombre }}</strong></div>
+      <div class="info-row"><span class="lbl">{{ factura.cliente_tipo_documento }}:</span> {{ factura.cliente_documento }}</div>
+      {% if factura.cliente_telefono %}<div class="info-row"><span class="lbl">Tel:</span> {{ factura.cliente_telefono }}</div>{% endif %}
+      {% if factura.cliente_email %}<div class="info-row"><span class="lbl">Email:</span> {{ factura.cliente_email }}</div>{% endif %}
+      {% if factura.cliente_direccion %}<div class="info-row"><span class="lbl">Dir:</span> {{ factura.cliente_direccion }}</div>{% endif %}
+    </td>
+    <td>
+      <div class="section-title">Datos del Servicio</div>
+      {% if factura.placa %}
+      <div class="info-row"><span class="lbl">Vehículo:</span> <span class="mono">{{ factura.placa }}</span> {{ factura.marca_nombre }} {{ factura.modelo_nombre }} {{ factura.anio }}</div>
+      {% endif %}
+      <div class="info-row"><span class="lbl">Vendedor:</span> {{ factura.vendedor_nombre }}</div>
+      {% if factura.numero_solicitud %}
+      <div class="info-row"><span class="lbl">Solicitud:</span> <span class="mono">{{ factura.numero_solicitud }}</span></div>
+      {% endif %}
+    </td>
+  </tr>
+</table>
+
+<!-- ══ TABLA DE ITEMS ══ -->
+<table class="items">
+  <thead>
+    <tr>
+      <th style="width:12%">Código</th>
+      <th>Descripción</th>
+      <th class="r" style="width:8%">Cant.</th>
+      <th class="r" style="width:15%">Precio Unit.</th>
+      <th class="r" style="width:12%">Desc.</th>
+      <th class="r" style="width:15%">Subtotal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for det in detalles %}
+    <tr{% if loop.index is even %} class="alt"{% endif %}>
+      <td><span class="mono">{{ det.repuesto_codigo }}</span></td>
+      <td>{{ det.repuesto_nombre }}</td>
+      <td class="r">{{ det.cantidad }}</td>
+      <td class="r">{{ det.precio_unitario | formato_cop_moneda }}</td>
+      <td class="r">{% if det.descuento and det.descuento > 0 %}{{ det.descuento | formato_cop_moneda }}{% else %}-{% endif %}</td>
+      <td class="r"><strong>{{ det.subtotal | formato_cop_moneda }}</strong></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- ══ TOTALES (flotando a la derecha) ══ -->
+<table class="totals">
+  <tr>
+    <td>Subtotal:</td>
+    <td class="r">{{ factura.subtotal | formato_cop_moneda }}</td>
+  </tr>
+  {% if factura.descuento and factura.descuento > 0 %}
+  <tr class="desc">
+    <td>Descuento:</td>
+    <td class="r">-{{ factura.descuento | formato_cop_moneda }}</td>
+  </tr>
+  {% endif %}
+  <tr>
+    <td>IVA (19%):</td>
+    <td class="r">{{ factura.impuesto | formato_cop_moneda }}</td>
+  </tr>
+  <tr class="grand">
+    <td>TOTAL:</td>
+    <td class="r">{{ factura.total | formato_cop_moneda }}</td>
+  </tr>
+</table>
+
+<div class="clearfix"></div>
+
+<!-- ══ ANULACIÓN ══ -->
+{% if factura.motivo_anulacion %}
+<div class="anulacion">
+  <strong>FACTURA ANULADA</strong><br>
+  Motivo: {{ factura.motivo_anulacion }}
+</div>
+{% endif %}
+
+<!-- ══ OBSERVACIONES ══ -->
+{% if factura.observaciones %}
+<hr class="div-thin">
+<div style="font-size:8.5pt"><span style="font-weight:bold;color:#666">Observaciones:</span> {{ factura.observaciones }}</div>
+{% endif %}
+
+<!-- ══ PIE ══ -->
+<div class="footer">
+  Documento generado el {{ now.strftime('%d/%m/%Y %H:%M') }}
+  &nbsp;|&nbsp; {{ empresa.get('EMPRESA_NOMBRE', 'Taller Automotriz') }}
+  {% if empresa.get('EMPRESA_NIT') %}&nbsp;|&nbsp; NIT {{ empresa['EMPRESA_NIT'] }}{% endif %}
+</div>
+
+</body>
+</html>

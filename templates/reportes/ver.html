@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}{{ reporte.titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>@media print { .no-print { display: none !important; } }</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3 no-print">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('reportes.lista_reportes') }}">Reportes</a></li>
+                    <li class="breadcrumb-item active">{{ reporte.titulo }}</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="col-auto no-print">
+            <button class="btn btn-outline-secondary" onclick="window.print()">
+                <i class="bi bi-printer"></i> Imprimir
+            </button>
+        </div>
+    </div>
+
+    <!-- Encabezado del reporte -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> {{ reporte.titulo }}</h5>
+                {% set tipo_colors = {'INVENTARIO': 'primary', 'VENTAS': 'success', 'MOVIMIENTOS': 'info', 'ALERTAS': 'warning', 'USUARIOS': 'secondary', 'GENERAL': 'dark'} %}
+                <span class="badge bg-{{ tipo_colors.get(reporte.tipo_reporte, 'secondary') }} fs-6">{{ reporte.tipo_reporte }}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4"><strong>Período:</strong> {{ reporte.fecha_inicio.strftime('%d/%m/%Y') if reporte.fecha_inicio else '' }} al {{ reporte.fecha_fin.strftime('%d/%m/%Y') if reporte.fecha_fin else '' }}</div>
+                <div class="col-md-4"><strong>Generado por:</strong> {{ reporte.generado_por_nombre }}</div>
+                <div class="col-md-4"><strong>Fecha de generación:</strong> {{ reporte.created_at.strftime('%d/%m/%Y %H:%M') if reporte.created_at else '' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de Inventario -->
+    {% if datos.inventario_resumen %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h6 class="mb-0"><i class="bi bi-box-seam"></i> Inventario</h6>
+        </div>
+        <div class="card-body">
+            <div class="row text-center mb-4">
+                <div class="col-md-2"><h3>{{ datos.inventario_resumen.total_repuestos or 0 }}</h3><small>Total Repuestos</small></div>
+                <div class="col-md-2"><h3>{{ datos.inventario_resumen.total_unidades or 0 }}</h3><small>Total Unidades</small></div>
+                <div class="col-md-3"><h4>{{ datos.inventario_resumen.valor_total|float|round(0)|int|formato_cop_moneda if datos.inventario_resumen.valor_total else '$0' }}</h4><small>Valor Total</small></div>
+                <div class="col-md-2"><h3 class="text-danger">{{ datos.inventario_resumen.agotados or 0 }}</h3><small>Agotados</small></div>
+                <div class="col-md-2"><h3 class="text-warning">{{ datos.inventario_resumen.stock_bajo or 0 }}</h3><small>Stock Bajo</small></div>
+            </div>
+            {% if datos.inventario_por_categoria %}
+            <h6>Por categoría:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light"><tr><th>Categoría</th><th class="text-center">Repuestos</th><th class="text-center">Unidades</th><th>Valor</th></tr></thead>
+                    <tbody>
+                        {% for cat in datos.inventario_por_categoria %}
+                        <tr>
+                            <td>{{ cat.categoria or 'Sin categoría' }}</td>
+                            <td class="text-center">{{ cat.total }}</td>
+                            <td class="text-center">{{ cat.unidades or 0 }}</td>
+                            <td>{{ cat.valor|float|round(0)|int|formato_cop_moneda if cat.valor else '$0' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Sección de Ventas -->
+    {% if datos.ventas_resumen %}
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h6 class="mb-0"><i class="bi bi-receipt"></i> Ventas y Facturación</h6>
+        </div>
+        <div class="card-body">
+            <div class="row text-center mb-4">
+                <div class="col-md-2"><h3>{{ datos.ventas_resumen.total_facturas or 0 }}</h3><small>Total Facturas</small></div>
+                <div class="col-md-2"><h3 class="text-success">{{ datos.ventas_resumen.pagadas or 0 }}</h3><small>Pagadas</small></div>
+                <div class="col-md-2"><h3 class="text-warning">{{ datos.ventas_resumen.pendientes or 0 }}</h3><small>Pendientes</small></div>
+                <div class="col-md-3"><h5 class="text-success">{{ datos.ventas_resumen.total_facturado|float|round(0)|int|formato_cop_moneda if datos.ventas_resumen.total_facturado else '$0' }}</h5><small>Total Facturado</small></div>
+                <div class="col-md-3"><h5 class="text-warning">{{ datos.ventas_resumen.total_pendiente|float|round(0)|int|formato_cop_moneda if datos.ventas_resumen.total_pendiente else '$0' }}</h5><small>Pendiente por Cobrar</small></div>
+            </div>
+            {% if datos.ventas_por_vendedor %}
+            <h6>Por vendedor:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light"><tr><th>Vendedor</th><th class="text-center">Facturas</th><th>Total Vendido</th></tr></thead>
+                    <tbody>
+                        {% for v in datos.ventas_por_vendedor %}
+                        <tr>
+                            <td>{{ v.vendedor }}</td>
+                            <td class="text-center">{{ v.total_facturas }}</td>
+                            <td>{{ v.total_vendido|float|round(0)|int|formato_cop_moneda if v.total_vendido else '$0' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Sección de Movimientos -->
+    {% if datos.movimientos_resumen %}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h6 class="mb-0"><i class="bi bi-arrow-left-right"></i> Movimientos</h6>
+        </div>
+        <div class="card-body">
+            <div class="row text-center mb-3">
+                <div class="col-md-2"><h3>{{ datos.movimientos_resumen.total_movimientos or 0 }}</h3><small>Total</small></div>
+                <div class="col-md-2"><h3 class="text-success">{{ datos.movimientos_resumen.entradas or 0 }}</h3><small>Entradas</small></div>
+                <div class="col-md-2"><h3 class="text-danger">{{ datos.movimientos_resumen.salidas or 0 }}</h3><small>Salidas</small></div>
+                <div class="col-md-3"><h5 class="text-success">+{{ datos.movimientos_resumen.unidades_entrada or 0 }} uds</h5><small>Unidades ingresadas</small></div>
+                <div class="col-md-3"><h5 class="text-danger">-{{ datos.movimientos_resumen.unidades_salida or 0 }} uds</h5><small>Unidades salidas</small></div>
+            </div>
+            {% if datos.movimientos_por_tipo %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead class="table-light"><tr><th>Tipo</th><th>Categoría</th><th class="text-center">Movimientos</th><th class="text-center">Unidades</th></tr></thead>
+                    <tbody>
+                        {% for t in datos.movimientos_por_tipo %}
+                        <tr>
+                            <td>{{ t.tipo_movimiento }}</td>
+                            <td><span class="badge bg-{{ 'success' if t.tipo == 'ENTRADA' else 'danger' }}">{{ t.tipo }}</span></td>
+                            <td class="text-center">{{ t.total }}</td>
+                            <td class="text-center">{{ t.unidades }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Sección de Alertas -->
+    {% if datos.alertas_resumen %}
+    <div class="card mb-4">
+        <div class="card-header bg-warning">
+            <h6 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Alertas</h6>
+        </div>
+        <div class="card-body">
+            <div class="row text-center mb-3">
+                <div class="col"><h3>{{ datos.alertas_resumen.total_alertas or 0 }}</h3><small>Total</small></div>
+                <div class="col"><h3 class="text-danger">{{ datos.alertas_resumen.nuevas or 0 }}</h3><small>Nuevas</small></div>
+                <div class="col"><h3 class="text-warning">{{ datos.alertas_resumen.en_proceso or 0 }}</h3><small>En Proceso</small></div>
+                <div class="col"><h3 class="text-success">{{ datos.alertas_resumen.resueltas or 0 }}</h3><small>Resueltas</small></div>
+                <div class="col"><h3 class="text-secondary">{{ datos.alertas_resumen.archivadas or 0 }}</h3><small>Archivadas</small></div>
+            </div>
+            {% if datos.alertas_por_tipo %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead class="table-light"><tr><th>Tipo de Alerta</th><th class="text-center">Total</th></tr></thead>
+                    <tbody>
+                        {% for a in datos.alertas_por_tipo %}
+                        <tr><td>{{ a.tipo_alerta }}</td><td class="text-center">{{ a.total }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Sección de Usuarios -->
+    {% if datos.usuarios_actividad %}
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h6 class="mb-0"><i class="bi bi-people"></i> Actividad de Usuarios</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light"><tr><th>Usuario</th><th>Rol</th><th class="text-center">Acciones</th><th class="text-center">Logins</th><th>Última actividad</th></tr></thead>
+                    <tbody>
+                        {% for u in datos.usuarios_actividad %}
+                        <tr>
+                            <td>{{ u.usuario }}</td>
+                            <td><span class="badge bg-secondary">{{ u.rol }}</span></td>
+                            <td class="text-center">{{ u.total_acciones or 0 }}</td>
+                            <td class="text-center">{{ u.logins or 0 }}</td>
+                            <td><small>{{ u.ultima_actividad or '-' }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="no-print">
+        <a href="{{ url_for('reportes.lista_reportes') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver a Reportes
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if repuesto else 'Nuevo' }} Repuesto - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>
+                <i class="bi bi-box-seam"></i> 
+                {{ 'Editar Repuesto' if repuesto else 'Nuevo Repuesto' }}
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('lista_repuestos') }}">Repuestos</a></li>
+                    <li class="breadcrumb-item active">{{ 'Editar' if repuesto else 'Nuevo' }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Información del Repuesto</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('editar_repuesto', codigo=repuesto.codigo) if repuesto else url_for('nuevo_repuesto') }}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="codigo" class="form-label">Código *</label>
+                                <input type="text" class="form-control" id="codigo" name="codigo" 
+                                       value="{{ repuesto.codigo if repuesto else '' }}" required>
+                                <small class="text-muted">Código único del repuesto</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="categoria_id" class="form-label">Categoría</label>
+                                <select class="form-select" id="categoria_id" name="categoria_id">
+                                    <option value="">Sin categoría</option>
+                                    {% for cat in categorias %}
+                                    <option value="{{ cat.id }}" 
+                                            {% if repuesto and repuesto.categoria_id == cat.id %}selected{% endif %}>
+                                        {{ cat.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre del Repuesto *</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" 
+                                   value="{{ repuesto.nombre if repuesto else '' }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="descripcion" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="descripcion" name="descripcion" rows="3">{{ repuesto.descripcion if repuesto else '' }}</textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="precio_venta" class="form-label">Precio de Venta *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="precio_venta" name="precio_venta" 
+                                           value="{{ repuesto.precio_venta if repuesto else '0' }}" 
+                                           step="0.01" min="0" required>
+                                </div>
+                            </div>
+                            
+                            {% if not repuesto %}
+                            <div class="col-md-4 mb-3">
+                                <label for="cantidad_actual" class="form-label">Cantidad Inicial</label>
+                                <input type="number" class="form-control" id="cantidad_actual" name="cantidad_actual" 
+                                       value="0" min="0">
+                            </div>
+                            {% endif %}
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="cantidad_minima" class="form-label">Cantidad Mínima *</label>
+                                <input type="number" class="form-control" id="cantidad_minima" name="cantidad_minima" 
+                                       value="{{ repuesto.cantidad_minima if repuesto else '5' }}" 
+                                       min="0" required>
+                                <small class="text-muted">Para alertas de stock bajo</small>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="marca_fabricante" class="form-label">Marca del Fabricante</label>
+                                <input type="text" class="form-control" id="marca_fabricante" name="marca_fabricante" 
+                                       value="{{ repuesto.marca_fabricante if repuesto else '' }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="ubicacion_fisica" class="form-label">Ubicación Física</label>
+                                <input type="text" class="form-control" id="ubicacion_fisica" name="ubicacion_fisica" 
+                                       value="{{ repuesto.ubicacion_fisica if repuesto else '' }}"
+                                       placeholder="Ej: Estante A3, Pasillo 2">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="observaciones" class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="observaciones" name="observaciones" rows="2">{{ repuesto.observaciones if repuesto else '' }}</textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('lista_repuestos') }}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> {{ 'Actualizar' if repuesto else 'Guardar' }} Repuesto
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Ayuda</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Campos obligatorios (*):</strong></p>
+                    <ul>
+                        <li>Código</li>
+                        <li>Nombre</li>
+                        <li>Precio de venta</li>
+                        <li>Cantidad mínima</li>
+                    </ul>
+                    
+                    <hr>
+                    
+                    <p><strong>Cantidad Mínima:</strong></p>
+                    <p class="small">Define el umbral para generar alertas de stock bajo. El sistema te notificará cuando la cantidad actual sea menor o igual a este valor.</p>
+                    
+                    <hr>
+                    
+                    <p><strong>Ubicación Física:</strong></p>
+                    <p class="small">Indica dónde se encuentra almacenado el repuesto para facilitar su localización.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

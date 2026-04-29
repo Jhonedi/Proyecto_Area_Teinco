@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Ajustes de Inventario Pendientes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h1><i class="bi bi-sliders"></i> Ajustes Pendientes de Aprobación</h1>
+            <p class="text-muted">Los almacenistas han solicitado los siguientes ajustes de inventario.</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('lista_repuestos') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver a Repuestos
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Repuesto</th>
+                            <th class="text-center">Cantidad Anterior</th>
+                            <th class="text-center">Cantidad Nueva</th>
+                            <th class="text-center">Diferencia</th>
+                            <th>Motivo</th>
+                            <th>Solicitado por</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ajuste in ajustes %}
+                        <tr>
+                            <td>
+                                <div><code>{{ ajuste.repuesto_codigo }}</code></div>
+                                <small>{{ ajuste.repuesto_nombre }}</small>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary">{{ ajuste.cantidad_anterior }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-primary">{{ ajuste.cantidad_nueva }}</span>
+                            </td>
+                            <td class="text-center">
+                                {% set diff = ajuste.cantidad_nueva - ajuste.cantidad_anterior %}
+                                <span class="badge bg-{% if diff > 0 %}success{% elif diff < 0 %}danger{% else %}secondary{% endif %} fs-6">
+                                    {% if diff > 0 %}+{% endif %}{{ diff }}
+                                </span>
+                            </td>
+                            <td>
+                                <small>{{ ajuste.motivo or '-' }}</small>
+                            </td>
+                            <td>
+                                <small>{{ ajuste.solicitado_por_nombre }}</small>
+                            </td>
+                            <td>
+                                <small>{{ ajuste.created_at.strftime('%d/%m/%Y %H:%M') if ajuste.created_at else '' }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <form method="POST" action="{{ url_for('aprobar_ajuste', id=ajuste.id) }}"
+                                          onsubmit="return confirm('¿Aprobar este ajuste de inventario?')">
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            <i class="bi bi-check-circle"></i> Aprobar
+                                        </button>
+                                    </form>
+                                    <button type="button" class="btn btn-danger btn-sm ms-1" data-bs-toggle="modal"
+                                            data-bs-target="#modalRechazar{{ ajuste.id }}">
+                                        <i class="bi bi-x-circle"></i> Rechazar
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Modal Rechazar -->
+                        <div class="modal fade" id="modalRechazar{{ ajuste.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form method="POST" action="{{ url_for('rechazar_ajuste', id=ajuste.id) }}">
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title">Rechazar Ajuste</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>
+                                                <strong>Repuesto:</strong> {{ ajuste.repuesto_nombre }}<br>
+                                                <strong>Ajuste:</strong> {{ ajuste.cantidad_anterior }} → {{ ajuste.cantidad_nueva }}
+                                            </p>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Motivo del rechazo <span class="text-danger">*</span></label>
+                                                <textarea class="form-control" name="motivo_rechazo" rows="3" required
+                                                          placeholder="Explique por qué se rechaza el ajuste..."></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-danger">Rechazar</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-check-circle fs-3 d-block mb-2 text-success"></i>
+                                No hay ajustes pendientes de aprobación
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
