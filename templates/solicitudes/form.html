@@ -2,8 +2,10 @@
 {% block title %}Nueva Solicitud de Repuestos{% endblock %}
 
 {% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 <style>
 .item-row { background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+.ts-wrapper.full .ts-control { background: #fff; }
 </style>
 {% endblock %}
 
@@ -116,6 +118,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
 let itemCount = 0;
 let categoriasCache = [];
@@ -133,28 +136,33 @@ $.ajax({
     success: function(data) { allRepuestosCache = data; }
 });
 
-// Manejar cambio de cliente → cargar vehículos
-$('#cliente_id').on('change', function() {
-    const clienteId = $(this).val();
-    const vehiculoSelect = $('#vehiculo_id');
-    vehiculoSelect.prop('disabled', true).html('<option value="">Cargando...</option>');
-    if (!clienteId) {
-        vehiculoSelect.html('<option value="">Primero seleccione un cliente</option>');
-        return;
-    }
-    $.ajax({
-        url: '/api/vehiculos-cliente/' + clienteId,
-        success: function(vehiculos) {
-            vehiculoSelect.html('<option value="">Seleccione vehículo...</option>');
-            vehiculos.forEach(function(v) {
-                vehiculoSelect.append('<option value="' + v.placa + '">' + v.placa + ' - ' + v.marca + ' ' + v.modelo + (v.anio ? ' ' + v.anio : '') + '</option>');
-            });
-            vehiculoSelect.prop('disabled', false);
-        },
-        error: function() {
-            vehiculoSelect.html('<option value="">Error cargando vehículos</option>');
+// Tom Select para cliente — con onChange para cargar vehículos
+const clienteTS = new TomSelect('#cliente_id', {
+    placeholder: 'Buscar cliente por nombre o documento...',
+    maxOptions: 60,
+    onChange: function(value) {
+        const vehiculoSelect = $('#vehiculo_id');
+        vehiculoSelect.prop('disabled', true).html('<option value="">Cargando...</option>');
+        if (!value) {
+            vehiculoSelect.html('<option value="">Primero seleccione un cliente</option>');
+            return;
         }
-    });
+        $.ajax({
+            url: '/api/vehiculos-cliente/' + value,
+            success: function(vehiculos) {
+                vehiculoSelect.html('<option value="">Seleccione vehículo...</option>');
+                vehiculos.forEach(function(v) {
+                    vehiculoSelect.append('<option value="' + v.placa + '">' +
+                        v.placa + ' - ' + v.marca + ' ' + v.modelo +
+                        (v.anio ? ' ' + v.anio : '') + '</option>');
+                });
+                vehiculoSelect.prop('disabled', false);
+            },
+            error: function() {
+                vehiculoSelect.html('<option value="">Error cargando vehículos</option>');
+            }
+        });
+    }
 });
 
 // Agregar item
@@ -174,53 +182,90 @@ $('#agregar-item').on('click', function() {
         catSelect.appendChild(opt);
     });
 
-    // Rellenar repuestos (todos)
-    cargarRepuestosEnSelect(div.querySelector('.repuesto-select'), allRepuestosCache);
-
+    // Agregar al DOM antes de inicializar Tom Select
     $('#items-container').append(div);
     $('#no-items-msg').hide();
-    bindItemEvents(div);
+
+    // Obtener referencia al div ya en el DOM
+    const divDOM = document.querySelector('#items-container .item-row[data-index="' + (itemCount - 1) + '"]');
+
+    // Poblar repuestos y luego inicializar Tom Select
+    poblarOpcionesRepuesto(divDOM.querySelector('.repuesto-select'), allRepuestosCache);
+    bindItemEvents(divDOM);
 });
 
-function cargarRepuestosEnSelect(sel, repuestos) {
-    $(sel).html('<option value="">Seleccione repuesto...</option>');
+// Carga opciones en un <select> nativo (antes de que Tom Select lo tome)
+function poblarOpcionesRepuesto(sel, repuestos) {
+    sel.innerHTML = '<option value="">Seleccione repuesto...</option>';
     repuestos.forEach(function(r) {
-        const disponible = r.cantidad_actual - (r.cantidad_reservada || 0);
-        $(sel).append('<option value="' + r.id + '" data-precio="' + r.precio_venta + '" data-stock="' + disponible + '">' +
-            r.codigo + ' - ' + r.nombre + ' (Stock: ' + disponible + ')</option>');
+        const disponible = r.disponible !== undefined ? r.disponible : (r.cantidad_actual - (r.cantidad_reservada || 0));
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.codigo + ' - ' + r.nombre + ' (Stock: ' + disponible + ')';
+        opt.dataset.precio = r.precio_venta;
+        opt.dataset.stock = disponible;
+        sel.appendChild(opt);
     });
 }
 
+// Actualiza opciones de un repuesto-select ya controlado por Tom Select
+function cargarRepuestosEnSelect(sel, repuestos) {
+    const ts = sel.tomselect;
+    if (ts) {
+        ts.clear(true);
+        ts.clearOptions();
+        repuestos.forEach(function(r) {
+            const disponible = r.disponible !== undefined ? r.disponible : (r.cantidad_actual - (r.cantidad_reservada || 0));
+            ts.addOption({
+                value: r.id,
+                text: r.codigo + ' - ' + r.nombre + ' (Stock: ' + disponible + ')',
+                precio: r.precio_venta,
+                stock: disponible
+            });
+        });
+        ts.refreshOptions(false);
+        sel.closest('.item-row').querySelector('.repuesto-info').textContent = '';
+    }
+}
+
 function bindItemEvents(div) {
-    // Cambio de categoría → filtrar repuestos
+    const repSel = div.querySelector('.repuesto-select');
+
+    // Inicializar Tom Select en repuesto
+    new TomSelect(repSel, {
+        placeholder: 'Buscar por código o nombre...',
+        maxOptions: 60,
+        onChange: function(value) {
+            const infoEl = div.querySelector('.repuesto-info');
+            const cantInput = div.querySelector('input[name="cantidad[]"]');
+            if (value) {
+                const opt = this.options[value];
+                infoEl.textContent = 'Precio: $' + formatCOP(opt ? opt.precio : 0) +
+                    ' | Stock disponible: ' + (opt ? opt.stock : 0);
+                cantInput.setAttribute('max', opt ? opt.stock : 1);
+            } else {
+                infoEl.textContent = '';
+                cantInput.removeAttribute('max');
+            }
+        }
+    });
+
+    // Cambio de categoría → filtrar repuestos en Tom Select
     $(div).find('.categoria-select').on('change', function() {
         const catId = $(this).val();
-        const repuestoSel = $(div).find('.repuesto-select');
         if (!catId) {
-            cargarRepuestosEnSelect(repuestoSel[0], allRepuestosCache);
+            cargarRepuestosEnSelect(repSel, allRepuestosCache);
             return;
         }
         $.ajax({
             url: '/api/repuestos/por-categoria/' + catId,
-            success: function(data) { cargarRepuestosEnSelect(repuestoSel[0], data); }
+            success: function(data) { cargarRepuestosEnSelect(repSel, data); }
         });
     });
 
-    // Cambio de repuesto → mostrar info
-    $(div).find('.repuesto-select').on('change', function() {
-        const opt = $(this).find('option:selected');
-        const stock = opt.data('stock');
-        const precio = opt.data('precio');
-        if (opt.val()) {
-            $(div).find('.repuesto-info').text('Precio: $' + formatCOP(precio) + ' | Stock disponible: ' + stock);
-            $(div).find('input[name="cantidad[]"]').attr('max', stock);
-        } else {
-            $(div).find('.repuesto-info').text('');
-        }
-    });
-
-    // Eliminar item
+    // Eliminar item — destruir Tom Select antes de remover del DOM
     $(div).find('.eliminar-item').on('click', function() {
+        if (repSel.tomselect) repSel.tomselect.destroy();
         $(div).remove();
         if ($('#items-container .item-row').length === 0) {
             $('#no-items-msg').show();

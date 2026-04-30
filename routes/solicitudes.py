@@ -224,7 +224,7 @@ def nueva_solicitud():
     # Obtener datos para el formulario
     # clientes: numero_documento como id para el form
     clientes = execute_query(
-        "SELECT numero_documento as id, numero_documento, nombre_completo FROM clientes WHERE activo = TRUE ORDER BY numero_documento ASC",
+        "SELECT numero_documento as id, numero_documento, nombre_completo FROM clientes WHERE activo = TRUE ORDER BY nombre_completo ASC",
         fetch_all=True
     )
 
